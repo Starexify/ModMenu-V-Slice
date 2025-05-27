@@ -1,0 +1,13 @@
+{
+  "title": "Mod Menu",
+  "description": "Mod Menu ",
+  "contributors": [
+    {
+      "name": "ImVeryBad",
+      "role": "Developer"
+    }
+  ],
+  "api_version": "0.6.3",
+  "mod_version": "0.0.0",
+  "license": "MIT"
+}

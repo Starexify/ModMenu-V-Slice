@@ -1,0 +1,40 @@
+import funkin.modding.PolymodHandler;
+import funkin.modding.base.ScriptedMusicBeatSubState;
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.ScriptedModule;
+import funkin.ui.mainmenu.MainMenuState;
+import funkin.util.Constants;
+
+import flixel.FlxG;
+import funkin.graphics.FunkinSprite;
+import funkin.util.ReflectUtil;
+
+class ModMenuMain extends ScriptedModule {
+
+    function new() {
+        super("ModMenuMain");
+    }
+
+    override function onCreate(event:ScriptEvent) {
+        FunkinSprite.cacheTexture(Paths.image("modmenu/default_icon"));
+    }
+
+    override function onStateChangeEnd(event:StateChangeScriptEvent) {
+        if (Std.isOfType(event.targetState, MainMenuState)) {
+            var menuState:MainMenuState = event.targetState;
+
+            var prevText = menuState.leftWatermarkText.text;
+            var index = prevText.indexOf("Newgrounds:");
+            var newText = (index != -1) ? "\n" + prevText.substr(index) : "";
+            menuState.leftWatermarkText.text = "Friday Night Funkin' " + Constants.VERSION.substr(1) + newText + "\n" + PolymodHandler.getAllMods().length + " mods Loaded";
+            menuState.leftWatermarkText.y -= (index != -1) ? 30 : 15;
+        }
+    }
+
+    override function onUpdate(event:UpdateScriptEvent) {
+        if (FlxG.keys.justPressed.TAB && ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name") != "ModMenuState") {
+            FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuState"));
+        }
+    }
+}
+

@@ -1,0 +1,148 @@
+import funkin.graphics.FunkinCamera;
+import funkin.graphics.FunkinSprite;
+import funkin.graphics.shaders.GaussianBlurShader;
+import funkin.input.Cursor;
+import funkin.modding.base.ScriptedFlxSpriteGroup;
+import funkin.modding.base.ScriptedMusicBeatSubState;
+import funkin.modding.PolymodHandler;
+
+import flixel.FlxG;
+import flixel.graphics.frames.FlxFrame;
+import flixel.graphics.frames.FlxImageFrame;
+import flixel.text.FlxText;
+
+import polymod.ModMetadata;
+
+import openfl.display.BitmapData;
+import openfl.filters.ShaderFilter;
+import openfl.utils.ByteArrayData;
+
+import haxe.ui.containers.HBox;
+import haxe.ui.containers.ListView;
+import haxe.ui.data.ArrayDataSource;
+import haxe.ui.core.BasicItemRenderer;
+import haxe.ui.RuntimeComponentBuilder;
+
+class ModMenuState extends ScriptedMusicBeatSubState {
+    var isInModMenu:Bool = false;
+
+    var mmListCam:FunkinCamera;
+    var mmInfoCam:FunkinCamera;
+
+    var enabledMods:Array<ModMetadata>;
+
+    var title:FlxText;
+
+    var hbox:HBox;
+    var modsListView:ListView;
+    var iconsGroup:ScriptedFlxSpriteGroup;
+    var itemRenderer:BasicItemRenderer;
+
+    var prevPersUpd:Bool;
+    var prevCursor:Bool;
+
+    override function create() {
+        super.create();
+        prevCursor = FlxG.mouse.visible;
+        prevPersUpd = FlxG.state.persistentUpdate;
+        FlxG.state.persistentUpdate = false;
+
+        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
+
+        mmListCam = createCamera("mmListCam", 0, 0, 100 + 525, 50 + 600, 0x0);
+        mmInfoCam = createCamera("mmInfoCam", 650, 150, 525, 500, 0x96000000);
+
+        enabledMods = PolymodHandler.getAllMods();
+
+        var handlerWindow = RuntimeComponentBuilder.fromAsset(Paths.ui("base-style"));
+        if (handlerWindow == null) return;
+
+        hbox = new HBox();
+        hbox.backgroundColor = 0x000000;
+        hbox.customStyle.backgroundOpacity = 0.5;
+        hbox.camera = mmListCam;
+        hbox.x = 100;
+        hbox.y = 50;
+        hbox.width = 525;
+        hbox.height = 600;
+
+        modsListView = new ListView();
+        modsListView.percentWidth = modsListView.percentHeight = 100;
+        modsListView.customStyle.backgroundOpacity = 0.5;
+
+        itemRenderer = new BasicItemRenderer();
+        //itemRenderer.customStyle.backgroundOpacity = 0;
+
+        modsListView.itemRenderer = itemRenderer;
+        populateModList(modsListView);
+
+        hbox.addComponent(modsListView);
+        add(hbox);
+
+        Cursor.show();
+        isInModMenu = true;
+    }
+
+    override function update(elapsed:Float) {
+        super.update(elapsed);
+
+        if (controls.BACK) {
+            close();
+            cleanup();
+        }
+    }
+
+    // Helper methods
+    function populateModList(list:ListView) {
+        if (list.dataSource == null) list.dataSource = new ArrayDataSource();
+        list.dataSource.clear();
+
+        var modIndex = -1;
+        for (mod in enabledMods) {
+            modIndex++;
+            var bitmap:BitmapData;
+            if (mod.icon != null) {
+                bitmap = BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+            } else {
+                if (FlxG.random.bool(5))
+                    bitmap = Assets.getBitmapData("flixel/images/logo/default.png");
+                else
+                    bitmap = Assets.getBitmapData(Paths.image("modmenu/default_icon"));
+            }
+            var frame:FlxFrame = FlxImageFrame.fromImage(bitmap).frame;
+
+            list.dataSource.add({
+                index: modIndex,
+                icon: { resource: frame, width: 100, height: 100 },
+                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5, fontFamily: "Tardling" }
+            });
+        }
+    }
+
+    function createCamera(name:String, x:Int, y:Int, width:Int, height:Int, bgColor:Int):FunkinCamera {
+        var cam = new FunkinCamera(name, x, y, width, height);
+        cam.bgColor = bgColor;
+        FlxG.cameras.add(cam, false);
+        return cam;
+    }
+
+    // Cleanup stuff
+    override function close() {
+        cleanup();
+        super.close();
+    }
+
+    override function destroy() {
+        cleanup();
+        super.destroy();
+    }
+
+    function cleanup() {
+        if (mmListCam != null) FlxG.cameras.remove(mmListCam);
+        if (mmInfoCam != null) FlxG.cameras.remove(mmInfoCam);
+        if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
+        FlxG.state.persistentUpdate = prevPersUpd;
+        if (prevCursor == false) Cursor.hide();
+    }
+}
+

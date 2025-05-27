@@ -1,0 +1,29 @@
+import funkin.graphics.FunkinSprite;
+import funkin.modding.base.ScriptedFlxSpriteGroup;
+
+import flixel.FlxG;
+
+import openfl.display.BitmapData;
+import openfl.utils.ByteArrayData;
+import flixel.graphics.frames.FlxFrame;
+
+class IconSprites extends ScriptedFlxSpriteGroup {
+
+    function addModIcon(mod:ModMetadata):FlxFrame {
+        var iconSprite:FunkinSprite = new FunkinSprite();
+        if (mod.icon != null) {
+            var bitmap = BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+            iconSprite.loadBitmapData(bitmap);
+        } else {
+            if (FlxG.random.bool(5))
+                iconSprite.loadBitmapData(Assets.getBitmapData("flixel/images/logo/default.png"));
+            else
+                iconSprite.loadTexture("modmenu/default_icon");
+        }
+        iconSprite.setGraphicSize(90, 90);
+        iconSprite.updateHitbox();
+        iconSprite.x += 5;
+        add(iconSprite);
+        return iconSprite.frame;
+    }
+}
