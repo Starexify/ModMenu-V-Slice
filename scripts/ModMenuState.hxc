@@ -24,6 +24,7 @@ import haxe.ui.components.Button;
 import haxe.ui.components.Label;
 import haxe.ui.components.Link;
 import haxe.ui.components.Spacer;
+import haxe.ui.components.Switch;
 import haxe.ui.containers.ListView;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.containers.VBox;
@@ -36,7 +37,9 @@ import StringTools;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
     var isInModMenu:Bool = false;
+    var changedMod:Bool = false;
     var enabledMods:Array<ModMetadata>;
+    var disabledMods:Array<String> = [];
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera;
 
@@ -47,6 +50,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
     var itemRenderer:BasicItemRenderer = new BasicItemRenderer();
+    var enableSwitch:Switch = new Switch();
 
     var modInfoContainer:VBox = new VBox();
 
@@ -69,6 +73,9 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         FlxG.state.persistentUpdate = false;
 
         enabledMods = PolymodHandler.getAllMods();
+        var modIds = PolymodHandler.getAllModIds();
+        disabledMods = FileUtilSandboxed.readDir("mods");
+        disabledMods = disabledMods.filter(id -> return !modIds.contains(id));
 
         setupCamera();
         setupUI();
@@ -110,6 +117,10 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         modsListView.customStyle.backgroundOpacity = 0.4;
 
         itemRenderer.customStyle.backgroundOpacity = 0.1;
+        enableSwitch.id = "enableSwitch";
+        enableSwitch.styleNames = "pill-switch";
+        enableSwitch.horizontalAlign = "right";
+        itemRenderer.addComponent(enableSwitch);
         modsListView.itemRenderer = itemRenderer;
         populateModList(modsListView);
         add(modsListView);
@@ -231,9 +242,55 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             var frame = FlxImageFrame.fromImage(bitmap).frame;
 
             list.dataSource.add({
-                index: i,
                 icon: { resource: frame, width: 70, height: 70 },
-                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5 }
+                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
+                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: true,
+                    onClick: (event:MouseEvent) -> {
+                        var normalFile = mod.modPath + "/_polymod_meta.json";
+                        var disabledFile = mod.modPath + "/_polymod_meta_disabled.json";
+
+                        if (!event.target.value) {
+                            // Disable: rename normal to disabled
+                            FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
+                        } else {
+                            // Enable: rename disabled to normal
+                            FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
+                        }
+                        trace(event.target.value);
+                        changedMod = true;
+                    }
+                }
+            });
+        }
+
+        for (i in 0...disabledMods.length) {
+            var modId = disabledMods[i];
+            var bitmap;
+            if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")) bitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
+            else {
+                var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
+                bitmap = Assets.getBitmapData(defaultPath);
+            }
+            var frame = FlxImageFrame.fromImage(bitmap).frame;
+
+            list.dataSource.add({
+                icon: { resource: frame, width: 70, height: 70 },
+                text: { text: modId, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
+                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: false,
+                    onClick: (event:MouseEvent) -> {
+                        var normalFile = "mods/" + modId + "/_polymod_meta.json";
+                        var disabledFile = "mods/" + modId + "/_polymod_meta_disabled.json";
+
+                        if (!event.target.value) {
+                            // Disable: rename normal to disabled
+                            FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
+                        } else {
+                            // Enable: rename disabled to normal
+                            FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
+                        }
+                        changedMod = true;
+                    }
+                }
             });
         }
     }
@@ -353,6 +410,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
     // Cleanup stuff
     override function close() {
+        if (changedMod) reloadAssets();
         cleanup();
         super.close();
     }

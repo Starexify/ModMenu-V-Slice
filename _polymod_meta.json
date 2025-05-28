@@ -1,6 +1,6 @@
 {
   "title": "Mod Menu",
-  "description": "Did you ever feel the need of viewing your succulent mod's icons? Touching them with your mouse button, clicking them and be greeted by information about them ? \n\nWell then be greeted by MOD MENU ! A new Menu mod made for V-Slice that let's you view your mods and even interact with their delicious metadata information through buttons and links !",
+  "description": "Did you ever feel the need of viewing your succulent mod's icons and titles in a list, touching them with your mouse button, clicking them and be greeted by information about them ? \n\nWell then be greeted by MOD MENU but for V-Slice ! A new mod made for V-Slice that let's you view your mods and even interact with their delicious metadata information through buttons and links ! \n\n\n(Inspired by Mod Menu for the Fabric Minecraft Mod Loader) \n\n\n\n\n\n\n\n\n\n\n                                     please Help mE , i need sLeeP",
   "contributors": [
     {
       "name": "ImVeryBad",
@@ -11,9 +11,7 @@
   "metadata": {
     "issues": "https://github.com/Starexify/ModMenu-V-Slice/issues",
     "extraLinks": {
-      "discord": "discordLinkHere",
-      "gamebanana": "gamebananaLinkHere",
-      "otherLink": "linkhere"
+      "GitHub": "https://github.com/Starexify/ModMenu-V-Slice"
     }
   },
   "homepage": "https://github.com/Starexify/ModMenu-V-Slice",
