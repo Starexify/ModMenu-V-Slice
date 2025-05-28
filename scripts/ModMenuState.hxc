@@ -47,6 +47,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
     var menuTitle:FlxText = new FlxText();
     var modTitle:Label = new Label();
+    var modInfo:Label = new Label();
     var modsSizeTxt:Label = new Label();
     var iconSprite:FunkinSprite = new FunkinSprite();
     var modsListView:ListView = new ListView();
@@ -75,7 +76,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         FlxG.state.persistentUpdate = false;
 
         enabledMods = PolymodHandler.getAllMods();
-        disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.getAllModIds().contains(id));
+        disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.loadedModIds.contains(id));
 
         folderIcon.setGraphicSize(35, 35);
 
@@ -148,7 +149,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         add(menuTitle);
 
         // Setup size text
-        modsSizeTxt.text = "Showing " + (enabledMods.length + disabledMods.length) + " mods";
+        modsSizeTxt.text = "<font color='#DDDDDD'> Showing " + (enabledMods.length + disabledMods.length) + " mods </font>";
         modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
         modsSizeTxt.fontSize = 19;
         modsSizeTxt.x = modsListView.x + 10;
@@ -162,11 +163,16 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         iconSprite.camera = modMenuCam;
         add(iconSprite);
 
-        // Setup mod title
+        // Setup mod title and info
         modTitle.fontSize = 20;
         modTitle.x = iconSprite.x + 110;
         modTitle.y = iconSprite.y + 5;
         add(modTitle);
+
+        modInfo.fontSize = 20;
+        modInfo.x = modTitle.x;
+        modInfo.y = modTitle.y + 20;
+        add(modInfo);
 
         // Setup mod info container
         modInfoContainer.x = 10;
@@ -235,8 +241,10 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
     function setupEventHandlers() {
         modsListView.onChange = (event:UIEvent) -> {
-            if (modsListView.selectedItem.type == "disabled") updateDisModInfo(modInfoView, disabledMods[modsListView.selectedItem.index]);
-            else updateModInfo(modInfoView, enabledMods[event.target.value]);
+            if (modsListView.selectedItem.type == "disabled")
+                updateModInfo(modInfoView, FileUtilSandboxed.readJSONFromPath("mods/" + disabledMods[modsListView.selectedItem.index] + "/_polymod_meta_disabled.json"), true);
+            else
+                updateModInfo(modInfoView, enabledMods[event.target.value], false);
         }
         modDirBtn.onMouseOver = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
@@ -250,8 +258,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             var mod = enabledMods[i];
             list.dataSource.add({
                 icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame },
-                text: { text: mod.title },
-                summary: { text: mod.metadata.get("summary") ?? "" },
+                text: { text: "<font color='#DDDDDD'>" + mod.title + "</font>" },
+                summary: { text: "<font color='#999999'>" + (mod.metadata.get("summary") ?? "") + "</font>" },
                 enableSwitch: { selected: true,
                     onClick: (event:MouseEvent) -> toggleMod(mod.modPath, event.target.value)
                 }
@@ -279,19 +287,26 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         }
     }
 
-    function updateModInfo(infoView:ScrollView, modMeta:ModMetadata) {
+    function updateModInfo(infoView:ScrollView, modMeta:ModMetadata, disabled:Bool) {
         if (cachedMeta == modMeta) return;
         cachedMeta = modMeta;
 
-        var bitmap = getModIcon(modMeta);
+        var bitmap;
+
+        bitmap = getModIcon(modMeta);
+        if (disabled) bitmap = FileUtilSandboxed.fileExists("mods/" + modMeta.title + "/_polymod_icon.png")
+        ? BitmapData.fromFile("mods/" + modMeta.title + "/_polymod_icon.png")
+        : Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+
         iconSprite.loadBitmapData(bitmap);
         iconSprite.setGraphicSize(100, 100);
         iconSprite.updateHitbox();
         iconSprite.visible = true;
 
-        modTitle.text = modMeta.title;
+        modTitle.text = "<font color='#DDDDDD'>" + modMeta.title + "</font>";
+        modInfo.text = "<font color='#999999'>" + (modMeta.modVersion?.version ?? "Disabled" ) + "</font>";
         updateButton(homepageBtn, modMeta.homepage);
-        updateButton(issuesBtn, modMeta.metadata.get("issues"));
+        updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata.issues);
 
         modDirBtn.disabled = false;
         modDirBtn.userData = modMeta.id;
@@ -312,31 +327,53 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         }
 
         // Extra Links
-        if (modMeta.metadata.exists("extraLinks")) {
-            var extraLinks = modMeta.metadata.get("extraLinks");
-            if (extraLinks != null && extraLinks != "") {
-                addLabel("Extra Links:", true);
+        if (disabled) {
+            var extraLinks = modMeta.metadata.extraLinks;
+            if (modMeta.metadata.extraLinks != null) {
+                if (extraLinks != null && extraLinks != "") {
+                    addLabel("Extra Links:", true);
 
-                // Convert string to map
-                var linksMap = new StringMap();
-                var cleanString = extraLinks.substring(1, extraLinks.length - 1); // Remove brackets
-                var pairs = cleanString.split(",");
+                    for (fieldName in ReflectUtil.getFieldsOf(extraLinks)) {
+                        var url = ReflectUtil.getProperty(extraLinks, fieldName);
+                        if (url != null && url != "") {
+                            var link = new Link();
+                            link.text = " " + fieldName;
+                            link.fontSize = 16;
+                            link.onClick = (event:MouseEvent) -> WindowUtil.openURL(url);
+                            modInfoContainer.addComponent(link);
+                        }
+                    }
 
-                for (pair in pairs) {
-                    var parts = StringTools.trim(pair).split(" => ");
-                    if (parts.length == 2) linksMap.set(StringTools.trim(parts[0]), StringTools.trim(parts[1]));
+                    addSpacer();
                 }
+            }
+        } else {
+            if (modMeta.metadata.exists("extraLinks")) {
+                var extraLinks = modMeta.metadata.get("extraLinks");
+                if (extraLinks != null && extraLinks != "") {
+                    addLabel("Extra Links:", true);
 
-                // Use the map
-                for (key in linksMap.keys()) {
-                    var link = new Link();
-                    link.text = " " + key;
-                    link.fontSize = 16;
-                    link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
-                    modInfoContainer.addComponent(link);
+                    // Convert string to map
+                    var linksMap = new StringMap();
+                    var cleanString = extraLinks.substring(1, extraLinks.length - 1); // Remove brackets
+                    var pairs = cleanString.split(",");
+
+                    for (pair in pairs) {
+                        var parts = StringTools.trim(pair).split(" => ");
+                        if (parts.length == 2) linksMap.set(StringTools.trim(parts[0]), StringTools.trim(parts[1]));
+                    }
+
+                    // Use the map
+                    for (key in linksMap.keys()) {
+                        var link = new Link();
+                        link.text = " " + key;
+                        link.fontSize = 16;
+                        link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
+                        modInfoContainer.addComponent(link);
+                    }
+
+                    addSpacer();
                 }
-
-                addSpacer();
             }
         }
 
@@ -364,27 +401,6 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         // Fallback
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
-    }
-
-    function updateDisModInfo(infoView:ScrollView, modId:String) {
-        cachedMeta = null;
-        var bitmap;
-        var bitmap = FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")
-        ? BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png")
-        : Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
-
-        iconSprite.loadBitmapData(bitmap);
-        iconSprite.setGraphicSize(100, 100);
-        iconSprite.updateHitbox();
-        iconSprite.visible = true;
-
-        modDirBtn.userData = modId;
-        modTitle.text = modId;
-        updateButton(issuesBtn, null);
-        updateButton(homepageBtn, null);
-
-        modInfoContainer.removeAllComponents();
-        addLabel("This mod is disabled !");
     }
 
     function toggleMod(basePath:String, enable:Bool) {
