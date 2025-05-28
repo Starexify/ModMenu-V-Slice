@@ -7,6 +7,14 @@
       "role": "Developer"
     }
   ],
+  "metadata": {
+    "issues": "https://github.com/Starexify/ModMenu-V-Slice/issues",
+    "extraLinks": {
+      "discord": "discordLinkHere",
+      "gamebanana": "gamebananaLinkHere"
+    }
+  },
+  "homepage": "https://github.com/Starexify/ModMenu-V-Slice",
   "api_version": "0.6.3",
   "mod_version": "0.0.0",
   "license": "MIT"

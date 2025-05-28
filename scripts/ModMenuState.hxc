@@ -2,14 +2,16 @@ import funkin.graphics.FunkinCamera;
 import funkin.graphics.FunkinSprite;
 import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.input.Cursor;
-import funkin.modding.base.ScriptedFlxSpriteGroup;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.PolymodHandler;
+import funkin.util.FileUtilSandboxed;
 
 import flixel.FlxG;
 import flixel.graphics.frames.FlxFrame;
 import flixel.graphics.frames.FlxImageFrame;
 import flixel.text.FlxText;
+import flixel.text.FlxTextBorderStyle;
+import funkin.util.WindowUtil;
 
 import polymod.ModMetadata;
 
@@ -17,67 +19,54 @@ import openfl.display.BitmapData;
 import openfl.filters.ShaderFilter;
 import openfl.utils.ByteArrayData;
 
-import haxe.ui.containers.HBox;
-import haxe.ui.containers.ListView;
-import haxe.ui.data.ArrayDataSource;
-import haxe.ui.core.BasicItemRenderer;
 import haxe.ui.RuntimeComponentBuilder;
+import haxe.ui.components.Label;
+import haxe.ui.containers.ListView;
+import haxe.ui.containers.ScrollView;
+import haxe.ui.core.BasicItemRenderer;
+import haxe.ui.data.ArrayDataSource;
+import haxe.ui.events.UIEvent;
+import haxe.ui.components.Button;
+import haxe.ui.events.MouseEvent;
+import funkin.util.ReflectUtil;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
     var isInModMenu:Bool = false;
-
-    var mmListCam:FunkinCamera;
-    var mmInfoCam:FunkinCamera;
-
     var enabledMods:Array<ModMetadata>;
+    var modMenuCam:FunkinCamera;
 
-    var title:FlxText;
+    var menuTitle:FlxText = new FlxText();
+    var modTitle:Label = new Label();
+    var modsSizeTxt:Label = new Label();
+    var iconSprite:FunkinSprite = new FunkinSprite();
+    var modsListView:ListView = new ListView();
+    var modInfoView:ScrollView = new ScrollView();
+    var itemRenderer:BasicItemRenderer = new BasicItemRenderer();
 
-    var hbox:HBox;
-    var modsListView:ListView;
-    var iconsGroup:ScriptedFlxSpriteGroup;
-    var itemRenderer:BasicItemRenderer;
+    var buttons:Array<Button> = [];
+    var homepageBtn:Button;
+    var issuesBtn:Button;
+    var modsDirBtn:Button;
+    var backButton:Button;
+    var modDirBtn:Button;
+    var configBtn:Button;
 
     var prevPersUpd:Bool;
     var prevCursor:Bool;
 
     override function create() {
         super.create();
+
         prevCursor = FlxG.mouse.visible;
         prevPersUpd = FlxG.state.persistentUpdate;
         FlxG.state.persistentUpdate = false;
 
-        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
-
-        mmListCam = createCamera("mmListCam", 0, 0, 100 + 525, 50 + 600, 0x0);
-        mmInfoCam = createCamera("mmInfoCam", 650, 150, 525, 500, 0x96000000);
-
         enabledMods = PolymodHandler.getAllMods();
 
-        var handlerWindow = RuntimeComponentBuilder.fromAsset(Paths.ui("base-style"));
-        if (handlerWindow == null) return;
-
-        hbox = new HBox();
-        hbox.backgroundColor = 0x000000;
-        hbox.customStyle.backgroundOpacity = 0.5;
-        hbox.camera = mmListCam;
-        hbox.x = 100;
-        hbox.y = 50;
-        hbox.width = 525;
-        hbox.height = 600;
-
-        modsListView = new ListView();
-        modsListView.percentWidth = modsListView.percentHeight = 100;
-        modsListView.customStyle.backgroundOpacity = 0.5;
-
-        itemRenderer = new BasicItemRenderer();
-        //itemRenderer.customStyle.backgroundOpacity = 0;
-
-        modsListView.itemRenderer = itemRenderer;
-        populateModList(modsListView);
-
-        hbox.addComponent(modsListView);
-        add(hbox);
+        setupCamera();
+        setupUI();
+        setupButtons();
+        setupEventHandlers();
 
         Cursor.show();
         isInModMenu = true;
@@ -93,37 +82,183 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     }
 
     // Helper methods
+    function setupCamera() {
+        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
+        modMenuCam = new FunkinCamera("modMenuCam");
+        modMenuCam.bgColor = 0x5F000000;
+        FlxG.cameras.add(modMenuCam, false);
+    }
+
+    function setupUI() {
+        var handlerWindow = RuntimeComponentBuilder.fromAsset(Paths.ui("base-style"));
+        if (handlerWindow == null) return;
+
+        // Setup list view
+        modsListView.camera = modMenuCam;
+        modsListView.backgroundColor = 0x000000;
+        modsListView.x = 50;
+        modsListView.y = 125;
+        modsListView.width = 575;
+        modsListView.height = 525;
+        modsListView.customStyle.backgroundOpacity = 0.4;
+
+        itemRenderer.customStyle.backgroundOpacity = 0.1;
+        modsListView.itemRenderer = itemRenderer;
+        populateModList(modsListView);
+        add(modsListView);
+
+        // Setup info view
+        modInfoView.camera = modMenuCam;
+        modInfoView.backgroundColor = 0x000000;
+        modInfoView.customStyle.backgroundOpacity = 0.5;
+        modInfoView.x = 650;
+        modInfoView.y = 225;
+        modInfoView.width = 575;
+        modInfoView.height = 425;
+        add(modInfoView);
+
+        // Setup title
+        menuTitle.setFormat(Paths.font("Tardling.ttf"), 21, 0xFFFFFF, "center", FlxTextBorderStyle.OUTLINE_FAST, 0xFF111111);
+        menuTitle.borderSize = 0.75;
+        menuTitle.text = "Mods";
+        menuTitle.x = modsListView.x + modsListView.width * 0.5 - menuTitle.width * 0.5;
+        menuTitle.y = 16;
+        menuTitle.camera = modMenuCam;
+        add(menuTitle);
+
+        // Setup size text
+        modsSizeTxt.text = 'Showing ${enabledMods.length} mods';
+        modsSizeTxt.fontSize = 19;
+        modsSizeTxt.x = modsListView.x + 10;
+        modsSizeTxt.y = modsListView.y - 30;
+        add(modsSizeTxt);
+
+        // Setup icon
+        iconSprite.x = modInfoView.x;
+        iconSprite.y = modInfoView.y - 165;
+        iconSprite.visible = false;
+        iconSprite.camera = modMenuCam;
+        add(iconSprite);
+
+        // Setup mod title
+        modTitle.fontSize = 19;
+        modTitle.x = iconSprite.x + 110;
+        modTitle.y = iconSprite.y + 5;
+        add(modTitle);
+    }
+
+    function setupButtons() {
+        // Button configurations
+        var buttonConfigs = [
+            {name: "modDirBtn", text: "Dir", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105,
+                width: 48, height: 48, disabled: true,
+                onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
+
+            {name: "configBtn", text: "Cfg", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105,
+                width: 48, height: 48, disabled: true,
+                onClick: () -> trace("Not implemented yet")},
+
+            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50,
+                width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+                onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
+
+            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50,
+                width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+                onClick: () -> WindowUtil.openURL(issuesBtn.userData)},
+
+            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5,
+                y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+                onClick: () -> FileUtilSandboxed.openFolder("mods")},
+
+            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20,
+                y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+                onClick: () -> close()}
+        ];
+
+        // Create buttons from config
+        for (config in buttonConfigs) {
+            var btn = new Button();
+            btn.text = config.text;
+            btn.x = config.x;
+            btn.y = config.y;
+            btn.width = config.width;
+            btn.height = config.height;
+            if (config.fontSize != null) btn.fontSize = config.fontSize;
+            if (config.disabled != null) btn.disabled = config.disabled;
+            btn.onClick = (event:MouseEvent) -> config.onClick();
+            btn.camera = modMenuCam;
+
+            // Assign to specific variables
+            switch (config.name) {
+                case "modDirBtn": modDirBtn = btn;
+                case "configBtn": configBtn = btn;
+                case "homepageBtn": homepageBtn = btn;
+                case "issuesBtn": issuesBtn = btn;
+                case "modsDirBtn": modsDirBtn = btn;
+                case "backButton": backButton = btn;
+            }
+
+            buttons.push(btn);
+            add(btn);
+        }
+    }
+
+    function setupEventHandlers() {
+        modsListView.onChange = (event:UIEvent) -> updateModInfo(modInfoView, enabledMods[event.target.value]);
+    }
+
     function populateModList(list:ListView) {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
 
-        var modIndex = -1;
-        for (mod in enabledMods) {
-            modIndex++;
-            var bitmap:BitmapData;
-            if (mod.icon != null) {
-                bitmap = BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
-            } else {
-                if (FlxG.random.bool(5))
-                    bitmap = Assets.getBitmapData("flixel/images/logo/default.png");
-                else
-                    bitmap = Assets.getBitmapData(Paths.image("modmenu/default_icon"));
-            }
-            var frame:FlxFrame = FlxImageFrame.fromImage(bitmap).frame;
+        for (i in 0...enabledMods.length) {
+            var mod = enabledMods[i];
+            var bitmap = getModIcon(mod);
+            var frame = FlxImageFrame.fromImage(bitmap).frame;
 
             list.dataSource.add({
-                index: modIndex,
-                icon: { resource: frame, width: 100, height: 100 },
-                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5, fontFamily: "Tardling" }
+                index: i,
+                icon: { resource: frame, width: 70, height: 70 },
+                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5 }
             });
         }
     }
 
-    function createCamera(name:String, x:Int, y:Int, width:Int, height:Int, bgColor:Int):FunkinCamera {
-        var cam = new FunkinCamera(name, x, y, width, height);
-        cam.bgColor = bgColor;
-        FlxG.cameras.add(cam, false);
-        return cam;
+    function updateModInfo(infoView:ScrollView, modMeta:ModMetadata) {
+        // Update Icon
+        var bitmap = getModIcon(modMeta);
+        iconSprite.loadBitmapData(bitmap);
+        iconSprite.setGraphicSize(100, 100);
+        iconSprite.updateHitbox();
+        iconSprite.visible = true;
+
+        modTitle.text = modMeta.title;
+
+        updateButton(homepageBtn, modMeta.homepage);
+        updateButton(issuesBtn, modMeta.metadata.get("issues"));
+
+        modDirBtn.disabled = false;
+        modDirBtn.userData = modMeta.id;
+
+        if (modMeta.metadata.exists("extraLinks")) {
+            trace(modMeta.metadata.get("extraLinks"));
+        }
+    }
+
+    function updateButton(btn:Button, url:String) {
+        if (url != null && url != "") {
+            btn.disabled = false;
+            btn.userData = url;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function getModIcon(mod:ModMetadata):BitmapData {
+        if (mod.icon != null) return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+
+        var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
+        return Assets.getBitmapData(defaultPath);
     }
 
     // Cleanup stuff
@@ -138,11 +273,9 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     }
 
     function cleanup() {
-        if (mmListCam != null) FlxG.cameras.remove(mmListCam);
-        if (mmInfoCam != null) FlxG.cameras.remove(mmInfoCam);
+        if (modMenuCam != null) FlxG.cameras.remove(modMenuCam);
         if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
         FlxG.state.persistentUpdate = prevPersUpd;
         if (prevCursor == false) Cursor.hide();
     }
 }
-
