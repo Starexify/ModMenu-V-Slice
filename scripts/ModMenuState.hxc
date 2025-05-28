@@ -116,9 +116,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         itemRenderer.percentWidth = 100;
         itemRenderer.layout = new HorizontalLayout();
 
-        itemRenderer.addComponent(createComponent("Image", {id: "icon", width: 70, height: 70}));
-        itemRenderer.addComponent(createComponent("Label", {id: "text", fontSize: 19, percentWidth: 100, verticalAlign: "top", paddingTop: 5}));
-        itemRenderer.addComponent(createComponent("Switch", {id: "enableSwitch", horizontalAlign: "right"}));
+        itemRenderer.addComponent(createComponent("Image", {id: "icon", width: 70, height: 70, verticalAlign: "center" }));
+        var textContainer = new VBox();
+        textContainer.percentWidth = 100;
+        textContainer.addComponent(createComponent("Label", {id: "text", fontSize: 19, percentWidth: 100, verticalAlign: "top", paddingTop: 5 }));
+        textContainer.addComponent(createComponent("Label", {id: "summary", fontSize: 16, percentWidth: 100, verticalAlign: "center", paddingLeft: 5 }));
+        itemRenderer.addComponent(textContainer);
+        itemRenderer.addComponent(createComponent("Switch", {id: "enableSwitch", horizontalAlign: "right", verticalAlign: "center", styleNames: "pill-switch"}));
 
         modsListView.itemRenderer = itemRenderer;
         populateModList(modsListView);
@@ -144,7 +148,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         add(menuTitle);
 
         // Setup size text
-        modsSizeTxt.text = "Showing " + enabledMods.length + " mods";
+        modsSizeTxt.text = "Showing " + (enabledMods.length + disabledMods.length) + " mods";
+        modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
         modsSizeTxt.fontSize = 19;
         modsSizeTxt.x = modsListView.x + 10;
         modsSizeTxt.y = modsListView.y - 30;
@@ -158,7 +163,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         add(iconSprite);
 
         // Setup mod title
-        modTitle.fontSize = 19;
+        modTitle.fontSize = 20;
         modTitle.x = iconSprite.x + 110;
         modTitle.y = iconSprite.y + 5;
         add(modTitle);
@@ -246,7 +251,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             list.dataSource.add({
                 icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame },
                 text: { text: mod.title },
-                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: true, styleNames: "pill-switch",
+                summary: { text: mod.metadata.get("summary") ?? "" },
+                enableSwitch: { selected: true,
                     onClick: (event:MouseEvent) -> toggleMod(mod.modPath, event.target.value)
                 }
             });
@@ -260,14 +266,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
                 var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
                 bitmap = Assets.getBitmapData(defaultPath);
             }
-            var frame = FlxImageFrame.fromImage(bitmap).frame;
 
             list.dataSource.add({
                 index: i,
                 type: "disabled",
-                icon: { resource: frame, width: 70, height: 70 },
-                text: { text: modId, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
-                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: false, styleNames: "pill-switch",
+                icon: { resource: FlxImageFrame.fromImage(bitmap).frame, opacity: 0.3 },
+                text: { text: modId },
+                enableSwitch: { selected: false,
                     onClick: (event:MouseEvent) -> toggleMod("mods/" + modId, event.target.value)
                 }
             });
@@ -296,6 +301,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         // Description
         if (modMeta.description != null && modMeta.description != "") {
             addLabel(modMeta.description);
+            addSpacer();
+        }
+
+        // Description
+        if (modMeta.license != null && modMeta.license != "") {
+            addLabel("License:", true);
+            addLabel(" " + modMeta.license);
             addSpacer();
         }
 
