@@ -1,17 +1,19 @@
 {
   "title": "Mod Menu",
-  "description": "Mod Menu ",
+  "description": "Did you ever feel the need of viewing your succulent mod's icons? Touching them with your mouse button, clicking them and be greeted by information about them ? \n\nWell then be greeted by MOD MENU ! A new Menu mod made for V-Slice that let's you view your mods and even interact with their delicious metadata information through buttons and links !",
   "contributors": [
     {
       "name": "ImVeryBad",
-      "role": "Developer"
+      "role": "Developer",
+      "url": "https://github.com/Starexify"
     }
   ],
   "metadata": {
     "issues": "https://github.com/Starexify/ModMenu-V-Slice/issues",
     "extraLinks": {
       "discord": "discordLinkHere",
-      "gamebanana": "gamebananaLinkHere"
+      "gamebanana": "gamebananaLinkHere",
+      "otherLink": "linkhere"
     }
   },
   "homepage": "https://github.com/Starexify/ModMenu-V-Slice",

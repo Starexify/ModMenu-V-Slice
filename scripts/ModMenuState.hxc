@@ -7,7 +7,6 @@ import funkin.modding.PolymodHandler;
 import funkin.util.FileUtilSandboxed;
 
 import flixel.FlxG;
-import flixel.graphics.frames.FlxFrame;
 import flixel.graphics.frames.FlxImageFrame;
 import flixel.text.FlxText;
 import flixel.text.FlxTextBorderStyle;
@@ -19,20 +18,26 @@ import openfl.display.BitmapData;
 import openfl.filters.ShaderFilter;
 import openfl.utils.ByteArrayData;
 
+import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
+import haxe.ui.components.Button;
 import haxe.ui.components.Label;
+import haxe.ui.components.Link;
+import haxe.ui.components.Spacer;
 import haxe.ui.containers.ListView;
 import haxe.ui.containers.ScrollView;
+import haxe.ui.containers.VBox;
 import haxe.ui.core.BasicItemRenderer;
 import haxe.ui.data.ArrayDataSource;
-import haxe.ui.events.UIEvent;
-import haxe.ui.components.Button;
 import haxe.ui.events.MouseEvent;
-import funkin.util.ReflectUtil;
+import haxe.ui.events.UIEvent;
+
+import StringTools;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
     var isInModMenu:Bool = false;
     var enabledMods:Array<ModMetadata>;
+    var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera;
 
     var menuTitle:FlxText = new FlxText();
@@ -42,6 +47,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
     var itemRenderer:BasicItemRenderer = new BasicItemRenderer();
+
+    var modInfoContainer:VBox = new VBox();
 
     var buttons:Array<Button> = [];
     var homepageBtn:Button;
@@ -127,7 +134,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         add(menuTitle);
 
         // Setup size text
-        modsSizeTxt.text = 'Showing ${enabledMods.length} mods';
+        modsSizeTxt.text = "Showing " + enabledMods.length + " mods";
         modsSizeTxt.fontSize = 19;
         modsSizeTxt.x = modsListView.x + 10;
         modsSizeTxt.y = modsListView.y - 30;
@@ -145,6 +152,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         modTitle.x = iconSprite.x + 110;
         modTitle.y = iconSprite.y + 5;
         add(modTitle);
+
+        // Setup mod info container
+        modInfoContainer.x = 10;
+        modInfoContainer.y = 10;
+        modInfoContainer.width = modInfoView.width - 20;
+        modInfoContainer.padding = 10;
+        modInfoView.addComponent(modInfoContainer);
     }
 
     function setupButtons() {
@@ -225,7 +239,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     }
 
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata) {
-        // Update Icon
+        if (cachedMeta == modMeta) return;
+        cachedMeta = modMeta;
         var bitmap = getModIcon(modMeta);
         iconSprite.loadBitmapData(bitmap);
         iconSprite.setGraphicSize(100, 100);
@@ -240,9 +255,84 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         modDirBtn.disabled = false;
         modDirBtn.userData = modMeta.id;
 
-        if (modMeta.metadata.exists("extraLinks")) {
-            trace(modMeta.metadata.get("extraLinks"));
+        modInfoContainer.removeAllComponents();
+
+        // Description
+        if (modMeta.description != null && modMeta.description != "") {
+            addLabel(modMeta.description);
+            addSpacer();
         }
+
+        // Extra Links
+        if (modMeta.metadata.exists("extraLinks")) {
+            var extraLinks = modMeta.metadata.get("extraLinks");
+            if (extraLinks != null && extraLinks != "") {
+                addLabel("Extra Links:", true);
+
+                // Convert string to map
+                var linksMap = new StringMap();
+                var cleanString = extraLinks.substring(1, extraLinks.length - 1); // Remove brackets
+                var pairs = cleanString.split(",");
+
+                for (pair in pairs) {
+                    var parts = StringTools.trim(pair).split(" => ");
+                    if (parts.length == 2) linksMap.set(StringTools.trim(parts[0]), StringTools.trim(parts[1]));
+                }
+
+                // Use the map
+                for (key in linksMap.keys()) {
+                    var link = new Link();
+                    link.text = " " + key;
+                    link.fontSize = 16;
+                    link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
+                    modInfoContainer.addComponent(link);
+                }
+
+                addSpacer();
+            }
+        }
+
+        // Contributors
+        if (modMeta.contributors != null && modMeta.contributors.length > 0) {
+            addLabel("Credits:", true);
+
+            for (contributor in modMeta.contributors) {
+                var nameText = " " + contributor.name;
+                if (contributor.role != null && contributor.role != "") {
+                    nameText += " - " + contributor.role;
+                }
+
+                if (contributor.url != null && contributor.url != "") {
+                    var link = new Link();
+                    link.text = nameText;
+                    link.fontSize = 16;
+                    link.onClick = (event:MouseEvent) -> WindowUtil.openURL(contributor.url);
+                    modInfoContainer.addComponent(link);
+                } else {
+                    addLabel(nameText);
+                }
+            }
+        }
+
+        // Fallback
+        if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
+    }
+
+    function addLabel(text:String, bold:Bool = false):Label {
+        var label = new Label();
+        label.text = text;
+        label.fontSize = 16;
+        label.wordWrap = true;
+        label.width = modInfoContainer.width - 20;
+        if (bold) label.customStyle.fontBold = true;
+        modInfoContainer.addComponent(label);
+        return label;
+    }
+
+    function addSpacer() {
+        var spacer = new Spacer();
+        spacer.height = 15;
+        modInfoContainer.addComponent(spacer);
     }
 
     function updateButton(btn:Button, url:String) {
