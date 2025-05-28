@@ -229,7 +229,10 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     }
 
     function setupEventHandlers() {
-        modsListView.onChange = (event:UIEvent) -> updateModInfo(modInfoView, enabledMods[event.target.value]);
+        modsListView.onChange = (event:UIEvent) -> {
+            if (modsListView.selectedItem.type == "disabled") updateDisModInfo(modInfoView, disabledMods[modsListView.selectedItem.index]);
+            else updateModInfo(modInfoView, enabledMods[event.target.value]);
+        }
     }
 
     function populateModList(list:ListView) {
@@ -274,6 +277,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             var frame = FlxImageFrame.fromImage(bitmap).frame;
 
             list.dataSource.add({
+                index: i,
+                type: "disabled",
                 icon: { resource: frame, width: 70, height: 70 },
                 text: { text: modId, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
                 enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: false,
@@ -373,6 +378,29 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         // Fallback
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
+    }
+
+    function updateDisModInfo(infoView:ScrollView, modId:String) {
+        cachedMeta = null;
+        var bitmap;
+        if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")) bitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
+        else {
+            var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
+            bitmap = Assets.getBitmapData(defaultPath);
+        }
+        iconSprite.loadBitmapData(bitmap);
+        iconSprite.setGraphicSize(100, 100);
+        iconSprite.updateHitbox();
+        iconSprite.visible = true;
+
+        modDirBtn.userData = modId;
+        modTitle.text = modId;
+
+        updateButton(issuesBtn, null);
+        updateButton(homepageBtn, null);
+
+        modInfoContainer.removeAllComponents();
+        addLabel("This mod is disabled !");
     }
 
     function addLabel(text:String, bold:Bool = false):Label {
