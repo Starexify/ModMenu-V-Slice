@@ -6,6 +6,8 @@ import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.PolymodHandler;
 import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
+import funkin.util.SerializerUtil;
+import funkin.util.VersionUtil;
 import funkin.util.WindowUtil;
 
 import flixel.FlxG;
@@ -36,6 +38,7 @@ import haxe.ui.events.MouseEvent;
 import haxe.ui.events.UIEvent;
 import haxe.ui.layouts.HorizontalLayout;
 
+import Array;
 import StringTools;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
@@ -261,7 +264,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
                 text: { text: "<font color='#DDDDDD'>" + mod.title + "</font>" },
                 summary: { text: "<font color='#999999'>" + (mod.metadata.get("summary") ?? "") + "</font>" },
                 enableSwitch: { selected: true,
-                    onClick: (event:MouseEvent) -> toggleMod(mod.modPath, event.target.value)
+                    onClick: (event:MouseEvent) -> toggleMod(mod, event.target.value, false)
                 }
             });
         }
@@ -281,7 +284,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
                 icon: { resource: FlxImageFrame.fromImage(bitmap).frame, opacity: 0.3 },
                 text: { text: modId },
                 enableSwitch: { selected: false,
-                    onClick: (event:MouseEvent) -> toggleMod("mods/" + modId, event.target.value)
+                    onClick: (event:MouseEvent) -> toggleMod("mods/" + disabledMods[i], event.target.value, true)
                 }
             });
         }
@@ -291,22 +294,17 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         if (cachedMeta == modMeta) return;
         cachedMeta = modMeta;
 
-        var bitmap;
-
-        bitmap = getModIcon(modMeta);
-        if (disabled) bitmap = FileUtilSandboxed.fileExists("mods/" + modMeta.title + "/_polymod_icon.png")
-        ? BitmapData.fromFile("mods/" + modMeta.title + "/_polymod_icon.png")
-        : Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
-
-        iconSprite.loadBitmapData(bitmap);
+        iconSprite.loadBitmapData(getModIcon(modMeta, disabled));
         iconSprite.setGraphicSize(100, 100);
         iconSprite.updateHitbox();
         iconSprite.visible = true;
 
         modTitle.text = "<font color='#DDDDDD'>" + modMeta.title + "</font>";
-        modInfo.text = "<font color='#999999'>" + (modMeta.modVersion?.version ?? "Disabled" ) + "</font>";
+
+        var version = !disabled ? SerializerUtil.serializeVersion(modMeta.modVersion) : "Disabled";
+        modInfo.text = "<font color='#999999'>" + version + "</font>";
         updateButton(homepageBtn, modMeta.homepage);
-        updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata.issues);
+        updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata?.issues);
 
         modDirBtn.disabled = false;
         modDirBtn.userData = modMeta.id;
@@ -328,8 +326,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         // Extra Links
         if (disabled) {
-            var extraLinks = modMeta.metadata.extraLinks;
-            if (modMeta.metadata.extraLinks != null) {
+            var extraLinks = modMeta.metadata?.extraLinks;
+            if (modMeta?.metadata?.extraLinks != null) {
                 if (extraLinks != null && extraLinks != "") {
                     addLabel("Extra Links:", true);
 
@@ -403,12 +401,41 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
     }
 
-    function toggleMod(basePath:String, enable:Bool) {
-        var normalFile = basePath + "/_polymod_meta.json";
-        var disabledFile = basePath + "/_polymod_meta_disabled.json";
+    // Handle this better without disabling it at runtime and rather when closing menu bcz this is so damn tideous
+    function toggleMod(modMeta:ModMetadata, enable:Bool, disabled:Bool) {
+        var jsonFile = enable ? "_polymod_meta_disabled.json" : "_polymod_meta.json";
+        var modPath = modMeta;
+        if (disabled) modMeta = FileUtilSandboxed.readJSONFromPath(modPath + "/" + jsonFile);
+        var metaPath = (disabled ? modPath : modMeta.modPath) + "/" + jsonFile;
 
-        if (enable) FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
-        else FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
+        FileUtilSandboxed.rename(metaPath, (enable ? "_polymod_meta.json" : "_polymod_meta_disabled.json"));
+
+/*        trace(modMeta.optionalDependencies);
+        trace(modMeta.dependencies);*/
+
+        // Also handle optional dependency with some promt if the user wants them !
+        if (disabled) {
+            for (dep in ReflectUtil.getFieldsOf(modMeta.dependencies)) {
+                var depVersion = ReflectUtil.getProperty(modMeta.dependencies, dep);
+                var depModVersion;
+                var modId = disabledMods.contains(dep) ? disabledMods.filter(modId -> modId == dep) : enabledMods.filter(meta -> meta.id == dep);
+                if (Std.isOfType(modId, Array)) {
+                    modId = modId[0];
+                    var disabledPath = "mods/" + modId + "/_polymod_meta_disabled.json";
+                    var enabledPath = "mods/" + modId + "/_polymod_meta.json";
+                    depModVersion = FileUtilSandboxed.readJSONFromPath(FileUtilSandboxed.fileExists(disabledPath) ? disabledPath : enabledPath).mod_version;
+                } else
+                    depModVersion = modId.modVersion.version;
+
+                if (VersionUtil.validateVersionStr(depModVersion, depVersion)) {
+                    trace("Should Enable Dependencies");
+                } else {
+                    trace("[ModMenu] Update dependency mod: " + modId + " to version: " + depVersion + " !");
+                    // Should leave json disabled
+                    //FileUtilSandboxed.rename(metaPath, "_polymod_meta_disabled.json");
+                }
+            }
+        }
 
         changedMod = true;
     }
@@ -435,8 +462,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         if (!btn.disabled) btn.userData = url;
     }
 
-    function getModIcon(mod:ModMetadata):BitmapData {
-        if (mod.icon != null) return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+    function getModIcon(mod:ModMetadata, disabled:Bool = false):BitmapData {
+        if (!disabled && mod.icon != null)
+            return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+
+        if (disabled && FileUtilSandboxed.fileExists("mods/" + mod.title + "/_polymod_icon.png"))
+            return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
+
         return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
     }
 
