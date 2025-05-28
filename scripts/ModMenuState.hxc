@@ -5,12 +5,13 @@ import funkin.input.Cursor;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.PolymodHandler;
 import funkin.util.FileUtilSandboxed;
+import funkin.util.ReflectUtil;
+import funkin.util.WindowUtil;
 
 import flixel.FlxG;
 import flixel.graphics.frames.FlxImageFrame;
 import flixel.text.FlxText;
 import flixel.text.FlxTextBorderStyle;
-import funkin.util.WindowUtil;
 
 import polymod.ModMetadata;
 
@@ -21,6 +22,7 @@ import openfl.utils.ByteArrayData;
 import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
 import haxe.ui.components.Button;
+import haxe.ui.components.Image;
 import haxe.ui.components.Label;
 import haxe.ui.components.Link;
 import haxe.ui.components.Spacer;
@@ -28,15 +30,15 @@ import haxe.ui.components.Switch;
 import haxe.ui.containers.ListView;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.containers.VBox;
-import haxe.ui.core.BasicItemRenderer;
+import haxe.ui.core.ItemRenderer;
 import haxe.ui.data.ArrayDataSource;
 import haxe.ui.events.MouseEvent;
 import haxe.ui.events.UIEvent;
+import haxe.ui.layouts.HorizontalLayout;
 
 import StringTools;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
-    var isInModMenu:Bool = false;
     var changedMod:Bool = false;
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
@@ -49,9 +51,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     var iconSprite:FunkinSprite = new FunkinSprite();
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
-    var itemRenderer:BasicItemRenderer = new BasicItemRenderer();
-    var enableSwitch:Switch = new Switch();
-
+    var itemRenderer:ItemRenderer = new ItemRenderer();
     var modInfoContainer:VBox = new VBox();
 
     var buttons:Array<Button> = [];
@@ -61,6 +61,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     var backButton:Button;
     var modDirBtn:Button;
     var configBtn:Button;
+
+    var folderIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/folder-icon");
 
     var prevPersUpd:Bool;
     var prevCursor:Bool;
@@ -73,9 +75,9 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         FlxG.state.persistentUpdate = false;
 
         enabledMods = PolymodHandler.getAllMods();
-        var modIds = PolymodHandler.getAllModIds();
-        disabledMods = FileUtilSandboxed.readDir("mods");
-        disabledMods = disabledMods.filter(id -> return !modIds.contains(id));
+        disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.getAllModIds().contains(id));
+
+        folderIcon.setGraphicSize(35, 35);
 
         setupCamera();
         setupUI();
@@ -83,16 +85,12 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         setupEventHandlers();
 
         Cursor.show();
-        isInModMenu = true;
     }
 
     override function update(elapsed:Float) {
         super.update(elapsed);
 
-        if (controls.BACK) {
-            close();
-            cleanup();
-        }
+        if (controls.BACK) { close(); cleanup(); }
     }
 
     // Helper methods
@@ -110,17 +108,18 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         // Setup list view
         modsListView.camera = modMenuCam;
         modsListView.backgroundColor = 0x000000;
-        modsListView.x = 50;
-        modsListView.y = 125;
-        modsListView.width = 575;
-        modsListView.height = 525;
+        modsListView.setPosition(50, 125);
+        modsListView.setSize(575, 525);
         modsListView.customStyle.backgroundOpacity = 0.4;
 
         itemRenderer.customStyle.backgroundOpacity = 0.1;
-        enableSwitch.id = "enableSwitch";
-        enableSwitch.styleNames = "pill-switch";
-        enableSwitch.horizontalAlign = "right";
-        itemRenderer.addComponent(enableSwitch);
+        itemRenderer.percentWidth = 100;
+        itemRenderer.layout = new HorizontalLayout();
+
+        itemRenderer.addComponent(createComponent("Image", {id: "icon", width: 70, height: 70}));
+        itemRenderer.addComponent(createComponent("Label", {id: "text", fontSize: 19, percentWidth: 100, verticalAlign: "top", paddingTop: 5}));
+        itemRenderer.addComponent(createComponent("Switch", {id: "enableSwitch", horizontalAlign: "right"}));
+
         modsListView.itemRenderer = itemRenderer;
         populateModList(modsListView);
         add(modsListView);
@@ -172,31 +171,31 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         modInfoView.addComponent(modInfoContainer);
     }
 
+    function createComponent(type:String, props:Dynamic):Dynamic {
+        var comp = switch (type) {
+            case "Image": new Image();
+            case "Label": new Label();
+            case "Switch": new Switch();
+            default: null;
+        }
+        for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
+        return comp;
+    }
+
     function setupButtons() {
         // Button configurations
         var buttonConfigs = [
-            {name: "modDirBtn", text: "Dir", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105,
-                width: 48, height: 48, disabled: true,
+            {name: "modDirBtn", text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, width: 48, height: 48, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
-
-            {name: "configBtn", text: "Cfg", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105,
-                width: 48, height: 48, disabled: true,
+            {name: "configBtn", text: "Cfg", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, width: 48, height: 48, disabled: true,
                 onClick: () -> trace("Not implemented yet")},
-
-            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50,
-                width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
-
-            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50,
-                width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
                 onClick: () -> WindowUtil.openURL(issuesBtn.userData)},
-
-            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5,
-                y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
                 onClick: () -> FileUtilSandboxed.openFolder("mods")},
-
-            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20,
-                y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
                 onClick: () -> close()}
         ];
 
@@ -213,7 +212,6 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             btn.onClick = (event:MouseEvent) -> config.onClick();
             btn.camera = modMenuCam;
 
-            // Assign to specific variables
             switch (config.name) {
                 case "modDirBtn": modDirBtn = btn;
                 case "configBtn": configBtn = btn;
@@ -226,6 +224,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             buttons.push(btn);
             add(btn);
         }
+
+        modDirBtn.add(folderIcon);
     }
 
     function setupEventHandlers() {
@@ -233,6 +233,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             if (modsListView.selectedItem.type == "disabled") updateDisModInfo(modInfoView, disabledMods[modsListView.selectedItem.index]);
             else updateModInfo(modInfoView, enabledMods[event.target.value]);
         }
+        modDirBtn.onMouseOver = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
+        modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
     }
 
     function populateModList(list:ListView) {
@@ -241,27 +243,11 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         for (i in 0...enabledMods.length) {
             var mod = enabledMods[i];
-            var bitmap = getModIcon(mod);
-            var frame = FlxImageFrame.fromImage(bitmap).frame;
-
             list.dataSource.add({
-                icon: { resource: frame, width: 70, height: 70 },
-                text: { text: mod.title, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
-                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: true,
-                    onClick: (event:MouseEvent) -> {
-                        var normalFile = mod.modPath + "/_polymod_meta.json";
-                        var disabledFile = mod.modPath + "/_polymod_meta_disabled.json";
-
-                        if (!event.target.value) {
-                            // Disable: rename normal to disabled
-                            FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
-                        } else {
-                            // Enable: rename disabled to normal
-                            FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
-                        }
-                        trace(event.target.value);
-                        changedMod = true;
-                    }
+                icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame },
+                text: { text: mod.title },
+                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: true, styleNames: "pill-switch",
+                    onClick: (event:MouseEvent) -> toggleMod(mod.modPath, event.target.value)
                 }
             });
         }
@@ -281,20 +267,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
                 type: "disabled",
                 icon: { resource: frame, width: 70, height: 70 },
                 text: { text: modId, fontSize: 19, verticalAlign: "top", paddingTop: 5 },
-                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: false,
-                    onClick: (event:MouseEvent) -> {
-                        var normalFile = "mods/" + modId + "/_polymod_meta.json";
-                        var disabledFile = "mods/" + modId + "/_polymod_meta_disabled.json";
-
-                        if (!event.target.value) {
-                            // Disable: rename normal to disabled
-                            FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
-                        } else {
-                            // Enable: rename disabled to normal
-                            FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
-                        }
-                        changedMod = true;
-                    }
+                enableSwitch: { horizontalAlign: "right", verticalAlign: "center", selected: false, styleNames: "pill-switch",
+                    onClick: (event:MouseEvent) -> toggleMod("mods/" + modId, event.target.value)
                 }
             });
         }
@@ -303,6 +277,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata) {
         if (cachedMeta == modMeta) return;
         cachedMeta = modMeta;
+
         var bitmap = getModIcon(modMeta);
         iconSprite.loadBitmapData(bitmap);
         iconSprite.setGraphicSize(100, 100);
@@ -310,7 +285,6 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         iconSprite.visible = true;
 
         modTitle.text = modMeta.title;
-
         updateButton(homepageBtn, modMeta.homepage);
         updateButton(issuesBtn, modMeta.metadata.get("issues"));
 
@@ -383,11 +357,10 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     function updateDisModInfo(infoView:ScrollView, modId:String) {
         cachedMeta = null;
         var bitmap;
-        if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")) bitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
-        else {
-            var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
-            bitmap = Assets.getBitmapData(defaultPath);
-        }
+        var bitmap = FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")
+        ? BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png")
+        : Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+
         iconSprite.loadBitmapData(bitmap);
         iconSprite.setGraphicSize(100, 100);
         iconSprite.updateHitbox();
@@ -395,12 +368,21 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         modDirBtn.userData = modId;
         modTitle.text = modId;
-
         updateButton(issuesBtn, null);
         updateButton(homepageBtn, null);
 
         modInfoContainer.removeAllComponents();
         addLabel("This mod is disabled !");
+    }
+
+    function toggleMod(basePath:String, enable:Bool) {
+        var normalFile = basePath + "/_polymod_meta.json";
+        var disabledFile = basePath + "/_polymod_meta_disabled.json";
+
+        if (enable) FileUtilSandboxed.rename(disabledFile, "_polymod_meta.json");
+        else FileUtilSandboxed.rename(normalFile, "_polymod_meta_disabled.json");
+
+        changedMod = true;
     }
 
     function addLabel(text:String, bold:Bool = false):Label {
@@ -421,24 +403,18 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     }
 
     function updateButton(btn:Button, url:String) {
-        if (url != null && url != "") {
-            btn.disabled = false;
-            btn.userData = url;
-        } else {
-            btn.disabled = true;
-        }
+        btn.disabled = (url == null || url == "");
+        if (!btn.disabled) btn.userData = url;
     }
 
     function getModIcon(mod:ModMetadata):BitmapData {
         if (mod.icon != null) return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
-
-        var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
-        return Assets.getBitmapData(defaultPath);
+        return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
     }
 
     // Cleanup stuff
     override function close() {
-        if (changedMod) reloadAssets();
+        if (changedMod) PolymodHandler.forceReloadAssets();
         cleanup();
         super.close();
     }
