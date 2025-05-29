@@ -49,6 +49,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera;
+    var currentSearchFilter:String = "";
+    var lastFilteredCount:Int = -1;
 
     var menuTitle:FlxText = new FlxText();
     var modTitle:Label = new Label();
@@ -99,7 +101,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     override function update(elapsed:Float) {
         super.update(elapsed);
 
-        if (controls.BACK) { close(); cleanup(); }
+        //if (controls.BACK) { close(); cleanup(); }
     }
 
     // Helper methods
@@ -134,7 +136,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         itemRenderer.addComponent(createComponent("Switch", {id: "enableSwitch", horizontalAlign: "right", verticalAlign: "center", styleNames: "pill-switch"}));
 
         modsListView.itemRenderer = itemRenderer;
-        populateModList(modsListView);
+        populateModList(modsListView, "");
         add(modsListView);
 
         // Setup info view
@@ -258,32 +260,57 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
     function setupEventHandlers() {
         modsListView.onChange = (event:UIEvent) -> {
-            if (modsListView.selectedItem.type == "disabled")
-                updateModInfo(modInfoView, FileUtilSandboxed.readJSONFromPath("mods/" + disabledMods[modsListView.selectedItem.index] + "/_polymod_meta_disabled.json"), true);
+            var selectedItem = modsListView.selectedItem;
+            if (selectedItem.type == "disabled")
+                updateModInfo(modInfoView, FileUtilSandboxed.readJSONFromPath("mods/" + disabledMods[selectedItem.originalIndex] + "/_polymod_meta_disabled.json"), true);
             else
-                updateModInfo(modInfoView, enabledMods[event.target.value], false);
+                updateModInfo(modInfoView, enabledMods[selectedItem.originalIndex], false);
         }
         modDirBtn.onMouseOver = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
         configBtn.onMouseOver = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         configBtn.onMouseOut = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
         modSearch.onDblClick = (event:MouseEvent) -> modSearch.text = "";
-/*        modSearch.registerEvent(UIEvent., (event:UIEvent) -> {
-           trace(event);
-        });
-        modSearch.registerEvent(UIEvent.CLOSE, (event:UIEvent) -> {
-            trace(event);
-        });*/
+        modSearch.onChange = (event:UIEvent) -> {
+            var searchText = event.target.text;
+            var newFilteredCount = getFilteredModCount(searchText);
+            if (newFilteredCount != lastFilteredCount || searchText != currentSearchFilter) {
+                currentSearchFilter = searchText;
+                lastFilteredCount = newFilteredCount;
+                populateModList(modsListView, searchText);
+            }
+
+            updateModsSizeText(searchText, newFilteredCount);
+        }
     }
 
-    function populateModList(list:ListView) {
+    function populateModList(list:ListView, searchFilter:String = "") {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
 
+        var filteredEnabledMods = [];
+        var filteredDisabledMods = [];
+
         for (i in 0...enabledMods.length) {
-            var mod = enabledMods[i];
+            var mod:ModMetadata = enabledMods[i];
+            if (searchFilter == "" || matchesSearch(mod.id, searchFilter)) {
+                filteredEnabledMods.push({ mod: mod, originalIndex: i });
+            }
+        }
+
+        for (i in 0...disabledMods.length) {
+            var modId:String = disabledMods[i];
+            if (searchFilter == "" || modId.toLowerCase().indexOf(searchFilter.toLowerCase()) != -1) {
+                filteredDisabledMods.push({ modId: modId, originalIndex: i });
+            }
+        }
+
+        for (modData in filteredEnabledMods) {
+            var mod = modData.mod;
             list.dataSource.add({
-                icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame },
+                originalIndex: modData.originalIndex,
+                icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame, opacity: 1 },
+                type: "enabled",
                 text: { text: applyHTML(mod.title, "DDDDDD") },
                 summary: { text: applyHTML(mod.metadata.get("summary") ?? "", "999999") },
                 enableSwitch: { selected: true,
@@ -292,22 +319,24 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             });
         }
 
-        for (i in 0...disabledMods.length) {
-            var modId = disabledMods[i];
+        for (modData in filteredDisabledMods) {
+            var modId = modData.modId;
             var bitmap;
-            if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png")) bitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
+            if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png"))
+                bitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
             else {
                 var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
                 bitmap = Assets.getBitmapData(defaultPath);
             }
 
             list.dataSource.add({
-                index: i,
+                originalIndex: modData.originalIndex,
                 type: "disabled",
                 icon: { resource: FlxImageFrame.fromImage(bitmap).frame, opacity: 0.3 },
                 text: { text: modId },
+                summary: { text: "" },
                 enableSwitch: { selected: false,
-                    onClick: (event:MouseEvent) -> toggleMod(disabledMods[i], event.target.value, true)
+                    onClick: (event:MouseEvent) -> toggleMod(disabledMods[modData.originalIndex], event.target.value, true)
                 }
             });
         }
@@ -494,6 +523,28 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (!btn.disabled) btn.userData = url;
     }
 
+    function updateModsSizeText(searchFilter:String = "", filteredCount:Int = -1) {
+        var totalMods = enabledMods.length + disabledMods.length;
+
+        if (filteredCount == -1) filteredCount = getFilteredModCount(searchFilter);
+
+        if (searchFilter == "") {
+            modsSizeTxt.text = "Showing " + totalMods + " mods";
+            if (disabledMods.length > 0) modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
+        } else {
+            // Count filtered disabled mods for display
+            var filteredDisabledCount = 0;
+            for (modId in disabledMods) {
+                if (modId.toLowerCase().indexOf(searchFilter.toLowerCase()) != -1) {
+                    filteredDisabledCount++;
+                }
+            }
+
+            modsSizeTxt.text = "Showing " + filteredCount + " of " + totalMods + " mods";
+            if (filteredDisabledCount > 0) modsSizeTxt.text += " (+" + filteredDisabledCount + " disabled)";
+        }
+    }
+
     function getModIcon(mod:ModMetadata, disabled:Bool = false):BitmapData {
         if (!disabled && mod.icon != null)
             return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
@@ -502,6 +553,30 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
 
         return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+    }
+
+    // Filter Functions
+    function getFilteredModCount(searchFilter:String):Int {
+        if (searchFilter == null || searchFilter == "") return enabledMods.length + disabledMods.length;
+
+        var count = 0;
+
+        // Count filtered enabled mods
+        for (mod in enabledMods)
+            if (matchesSearch(mod.id, searchFilter)) count++;
+
+        // Count filtered disabled mods
+        for (modId in disabledMods)
+            if (modId.toLowerCase().indexOf(searchFilter.toLowerCase()) != -1) count++;
+
+        return count;
+    }
+
+    function matchesSearch(modId:String, searchFilter:String):Bool {
+        if (searchFilter == "") return true;
+
+        var filter = searchFilter.toLowerCase();
+        return modId != null && modId.toLowerCase().indexOf(filter) != -1;
     }
 
     // Other
