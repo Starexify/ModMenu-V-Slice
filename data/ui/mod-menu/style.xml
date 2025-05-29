@@ -17,9 +17,27 @@
             font-size: 20px;
             color: #AAAAAA;
         }
+        .modInfoContainer {
+            margin: 10px;
+        }
+        .modInfo {
+            word-wrap: true;
+            font-size: 16px;
+        }
         .modMenuView {
             background-color: #000000;
             background-opacity: 0.2;
+        }
+        .modMenuView .vertical-scroll {
+            background-opacity: 0.1;
+            padding-left: 1px;
+            width: 12px;
+        }
+        .modMenuView .vertical-scroll .button {
+            background-color: #333333;
+            border-radius: 2px;
+            opacity: 1;
+            width: 11px;
         }
         #modListView .listview-contents {
             padding: 5px;
@@ -27,17 +45,6 @@
         #modListView .listview-contents > .itemrenderer:selected {
             border-radius: 10px;
             border:2px solid #444444;
-        }
-        #modListView .vertical-scroll {
-            background-opacity: 0.1;
-            padding-left: 1px;
-            width: 12px;
-        }
-        #modListView .vertical-scroll .button {
-            background-color: #333333;
-            border-radius: 2px;
-            opacity: 1;
-            width: 11px;
         }
         #modItemRenderer {
             width: 100%;

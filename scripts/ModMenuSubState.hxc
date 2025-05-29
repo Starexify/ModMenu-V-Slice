@@ -205,10 +205,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(modInfo);
 
         // Setup mod info container
-        modInfoContainer.x = 10;
-        modInfoContainer.y = 10;
-        modInfoContainer.width = modInfoView.width - 20;
-        modInfoContainer.padding = 10;
+        modInfoContainer.styleNames = "modInfoContainer";
+        modInfoContainer.width = modInfoView.width - 24;
         modInfoView.addComponent(modInfoContainer);
     }
 
@@ -383,7 +381,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Description
         if (modMeta.license != null && modMeta.license != "") {
-            addLabel("License:", true);
+            addLabel("License:");
             addLabel(" " + modMeta.license);
             addSpacer();
         }
@@ -393,14 +391,14 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             var extraLinks = modMeta.metadata?.extraLinks;
             if (modMeta?.metadata?.extraLinks != null) {
                 if (extraLinks != null && extraLinks != "") {
-                    addLabel("Extra Links:", true);
+                    addLabel("Extra Links:");
 
                     for (fieldName in ReflectUtil.getFieldsOf(extraLinks)) {
                         var url = ReflectUtil.getProperty(extraLinks, fieldName);
                         if (url != null && url != "") {
                             var link = new Link();
+                            link.styleNames = "modInfo";
                             link.text = " " + fieldName;
-                            link.fontSize = 16;
                             link.onClick = (event:MouseEvent) -> WindowUtil.openURL(url);
                             modInfoContainer.addComponent(link);
                         }
@@ -413,7 +411,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             if (modMeta.metadata.exists("extraLinks")) {
                 var extraLinks = modMeta.metadata.get("extraLinks");
                 if (extraLinks != null && extraLinks != "") {
-                    addLabel("Extra Links:", true);
+                    addLabel("Extra Links:");
 
                     // Convert string to map
                     var linksMap = new StringMap();
@@ -428,8 +426,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                     // Use the map
                     for (key in linksMap.keys()) {
                         var link = new Link();
+                        link.styleNames = "modInfo";
                         link.text = " " + key;
-                        link.fontSize = 16;
                         link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
                         modInfoContainer.addComponent(link);
                     }
@@ -441,7 +439,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Contributors
         if (modMeta.contributors != null && modMeta.contributors.length > 0) {
-            addLabel("Credits:", true);
+            addLabel("Credits:");
 
             for (contributor in modMeta.contributors) {
                 var nameText = " " + contributor.name;
@@ -451,8 +449,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
                 if (contributor.url != null && contributor.url != "") {
                     var link = new Link();
+                    link.styleNames = "modInfo";
                     link.text = nameText;
-                    link.fontSize = 16;
                     link.onClick = (event:MouseEvent) -> WindowUtil.openURL(contributor.url);
                     modInfoContainer.addComponent(link);
                 } else {
@@ -509,13 +507,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
-    function addLabel(text:String, bold:Bool = false):Label {
+    function addLabel(text:String):Label {
         var label = new Label();
+        label.styleNames = "modInfo";
         label.text = text;
-        label.fontSize = 16;
-        label.wordWrap = true;
         label.width = modInfoContainer.width - 20;
-        if (bold) label.customStyle.fontBold = true;
         modInfoContainer.addComponent(label);
         return label;
     }
