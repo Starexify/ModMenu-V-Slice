@@ -1,0 +1,16 @@
+<box>
+    <style>
+        #modItemRenderer {
+            background-opacity: 0.1;
+        }
+        #modItemRenderer:hover {
+            background-opacity: 0.9;
+            background-color: #222222;
+            border-radius: 10px;
+            border:2px solid #111111;
+        }
+        .label {
+            font-size: 19px;
+        }
+    </style>
+</box>
