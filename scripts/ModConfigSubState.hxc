@@ -1,0 +1,39 @@
+import funkin.graphics.FunkinCamera;
+import funkin.graphics.shaders.GaussianBlurShader;
+import funkin.modding.base.ScriptedMusicBeatSubState;
+
+import flixel.FlxG;
+
+import openfl.filters.ShaderFilter;
+
+class ModConfigSubState extends ScriptedMusicBeatSubState {
+    var configValues:Dynamic;
+    var configCam:FunkinCamera;
+
+    override function create() {
+        super.create();
+
+        setupCamera();
+
+        trace("In Config SubState !");
+    }
+
+    override function update(elapsed:Float) {
+        super.update(elapsed);
+
+        if (controls.BACK) { close(); cleanup(); }
+    }
+
+    // Helper methods
+    function setupCamera() {
+        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
+        configCam = new FunkinCamera("configCam");
+        configCam.bgColor = 0x5F000000;
+        FlxG.cameras.add(configCam, false);
+    }
+
+    function cleanup() {
+        if (configCam != null) FlxG.cameras.remove(configCam);
+        if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
+    }
+}

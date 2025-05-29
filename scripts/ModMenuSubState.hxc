@@ -11,6 +11,7 @@ import funkin.util.VersionUtil;
 import funkin.util.WindowUtil;
 
 import flixel.FlxG;
+import flixel.FlxSubState;
 import flixel.graphics.frames.FlxImageFrame;
 import flixel.text.FlxText;
 import flixel.text.FlxTextBorderStyle;
@@ -29,6 +30,7 @@ import haxe.ui.components.Label;
 import haxe.ui.components.Link;
 import haxe.ui.components.Spacer;
 import haxe.ui.components.Switch;
+import haxe.ui.components.TextField;
 import haxe.ui.containers.ListView;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.containers.VBox;
@@ -41,7 +43,7 @@ import haxe.ui.layouts.HorizontalLayout;
 import Array;
 import StringTools;
 
-class ModMenuState extends ScriptedMusicBeatSubState {
+class ModMenuSubState extends ScriptedMusicBeatSubState {
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
     var modStates:StringMap<Bool> = new StringMap();
@@ -50,6 +52,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
     var menuTitle:FlxText = new FlxText();
     var modTitle:Label = new Label();
+    var modSearch:TextField = new TextField();
     var modInfo:Label = new Label();
     var modsSizeTxt:Label = new Label();
     var iconSprite:FunkinSprite = new FunkinSprite();
@@ -67,6 +70,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
     var configBtn:Button;
 
     var folderIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/folder-icon");
+    var configIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/config-icon");
 
     var prevPersUpd:Bool;
     var prevCursor:Bool;
@@ -82,6 +86,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.loadedModIds.contains(id));
 
         folderIcon.setGraphicSize(35, 35);
+        configIcon.setGraphicSize(35, 35);
 
         setupCamera();
         setupUI();
@@ -151,9 +156,17 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         menuTitle.camera = modMenuCam;
         add(menuTitle);
 
+        // Setup search field
+        modSearch.placeholder = "Search...";
+        modSearch.width = modsListView.width * 0.8;
+        modSearch.height = 30;
+        modSearch.x = modsListView.x + modsListView.width * 0.5 - modSearch.width * 0.5;
+        modSearch.y = menuTitle.y + modSearch.height + 5;
+        add(modSearch);
+
         // Setup size text
-        modsSizeTxt.text = "<font color='#DDDDDD'> Showing " + (enabledMods.length + disabledMods.length) + " mods </font>";
-        modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
+        modsSizeTxt.text = applyHTML("Showing " + (enabledMods.length + disabledMods.length) + " mods", "DDDDDD");
+        if (disabledMods.length > 0) modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
         modsSizeTxt.fontSize = 19;
         modsSizeTxt.x = modsListView.x + 10;
         modsSizeTxt.y = modsListView.y - 30;
@@ -201,8 +214,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         var buttonConfigs = [
             {name: "modDirBtn", text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, width: 48, height: 48, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
-            {name: "configBtn", text: "Cfg", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, width: 48, height: 48, disabled: true,
-                onClick: () -> trace("Not implemented yet")},
+            {name: "configBtn", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, width: 48, height: 48, disabled: false,
+                onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
             {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
             {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
@@ -240,6 +253,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         }
 
         modDirBtn.add(folderIcon);
+        configBtn.add(configIcon);
     }
 
     function setupEventHandlers() {
@@ -251,6 +265,15 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         }
         modDirBtn.onMouseOver = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
+        configBtn.onMouseOver = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
+        configBtn.onMouseOut = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
+        modSearch.onDblClick = (event:MouseEvent) -> modSearch.text = "";
+/*        modSearch.registerEvent(UIEvent., (event:UIEvent) -> {
+           trace(event);
+        });
+        modSearch.registerEvent(UIEvent.CLOSE, (event:UIEvent) -> {
+            trace(event);
+        });*/
     }
 
     function populateModList(list:ListView) {
@@ -414,21 +437,23 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
         if (disabled) {
             modMeta = FileUtilSandboxed.readJSONFromPath("mods/" + modId + "/_polymod_meta_disabled.json");
-            handleDependencies(modMeta.dependencies, removeState);
+            handleDependencies(modMeta, removeState);
         } else {
             if (modMeta.dependencies != null) handleDependents(modId, removeState);
         }
     }
 
     function handleDependencies(dependencies, removeState:Bool) {
-        if (dependencies == null) return;
-        var depFields = ReflectUtil.getFieldsOf(dependencies);
-        for (depName in depFields) {
-            modStates.set(depName, true);
-            if (removeState) modStates.remove(depName);
-            trace(modStates);
-            trace(depName);
+        if (dependencies.dependencies != null) {
+            var depFields = ReflectUtil.getFieldsOf(dependencies.dependencies);
+            for (depName in depFields) {
+                modStates.set(depName, true);
+                if (removeState) modStates.remove(depName);
+                trace(modStates);
+                trace(depName);
+            }
         }
+
     }
 
     function handleDependents(modId:String, removeState:Bool) {
@@ -436,6 +461,13 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             modStates.set(mod.id, false);
             if (removeState) modStates.remove(mod.id);
             trace("Found dependents mods: " + mod.id);
+            trace(mod.id);
+        }
+
+        for (mod in enabledMods.filter(meta -> meta.optionalDependencies.exists(modId))) {
+            modStates.set(mod.id, false);
+            if (removeState) modStates.remove(mod.id);
+            trace("Found optional dependents mods: " + mod.id);
             trace(mod.id);
         }
     }
@@ -470,6 +502,20 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
 
         return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+    }
+
+    // Other
+    override function onOpenSubStateComplete(targetState:FlxSubState):Void {
+        super.onOpenSubStateComplete(targetState);
+        trace("Open SubState");
+        modMenuCam.visible = false;
+    }
+
+    override function onCloseSubStateComplete(targetState:FlxSubState):Void {
+        super.onCloseSubStateComplete(targetState);
+        trace("Close SubState");
+        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
+        modMenuCam.visible = true;
     }
 
     // Cleanup stuff

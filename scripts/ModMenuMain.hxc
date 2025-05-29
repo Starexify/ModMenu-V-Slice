@@ -32,8 +32,8 @@ class ModMenuMain extends ScriptedModule {
     }
 
     override function onUpdate(event:UpdateScriptEvent) {
-        if (FlxG.keys.justPressed.TAB && ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name") != "ModMenuState") {
-            FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuState"));
+        if (FlxG.keys.justPressed.TAB && ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name") != "ModMenuSubState") {
+            FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
         }
     }
 }
