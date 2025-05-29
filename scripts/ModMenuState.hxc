@@ -409,37 +409,35 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         var modId = disabled ? modMeta : modMeta.id;
 
         modStates.set(modId, enable);
-        if (!enable == disabled) modStates.remove(modId);
+        var removeState:Bool = !enable == disabled;
+        if (removeState) modStates.remove(modId);
 
-        if (modMeta.dependencies != null) {
-            trace(modMeta.dependencies);
-            if (disabled) {
-                handleDependencies(modMeta);
-            }
+        if (disabled) {
+            modMeta = FileUtilSandboxed.readJSONFromPath("mods/" + modId + "/_polymod_meta_disabled.json");
+            handleDependencies(modMeta.dependencies, removeState);
+        } else {
+            if (modMeta.dependencies != null) handleDependents(modId, removeState);
         }
     }
 
-    function handleDependencies(modMeta:ModMetadata) {
-        for (dep in ReflectUtil.getFieldsOf(modMeta.dependencies)) {
-            var depVersion = ReflectUtil.getProperty(modMeta.dependencies, dep);
-            var depModVersion = getDependencyVersion(dep);
-
-            if (VersionUtil.validateVersionStr(depModVersion, depVersion)) {
-                trace("Should Enable Dependencies");
-                // Optionally auto-enable the dependency
-                // toggleMod(getDependencyMeta(dep), true);
-            } else {
-                trace("[ModMenu] Update dependency mod: " + dep + " to version: " + depVersion + " !");
-            }
+    function handleDependencies(dependencies, removeState:Bool) {
+        if (dependencies == null) return;
+        var depFields = ReflectUtil.getFieldsOf(dependencies);
+        for (depName in depFields) {
+            modStates.set(depName, true);
+            if (removeState) modStates.remove(depName);
+            trace(modStates);
+            trace(depName);
         }
     }
 
-    function getDependencyVersion(depId:String):String {
-        var disabledPath = "mods/" + depId + "/_polymod_meta_disabled.json";
-        var enabledPath = "mods/" + depId + "/_polymod_meta.json";
-
-        var path = FileUtilSandboxed.fileExists(disabledPath) ? disabledPath : enabledPath;
-        return FileUtilSandboxed.readJSONFromPath(path).mod_version;
+    function handleDependents(modId:String, removeState:Bool) {
+        for (mod in enabledMods.filter(meta -> meta.dependencies.exists(modId))) {
+            modStates.set(mod.id, false);
+            if (removeState) modStates.remove(mod.id);
+            trace("Found dependents mods: " + mod.id);
+            trace(mod.id);
+        }
     }
 
     function addLabel(text:String, bold:Bool = false):Label {
