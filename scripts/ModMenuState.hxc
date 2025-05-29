@@ -143,7 +143,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         add(modInfoView);
 
         // Setup title
-        menuTitle.setFormat(Paths.font("Tardling.ttf"), 21, 0xFFFFFF, "center", FlxTextBorderStyle.OUTLINE_FAST, 0xFF111111);
+        menuTitle.setFormat(Paths.font("Tardling-Solid.ttf"), 30, 0xFFFFFF, "center", FlxTextBorderStyle.OUTLINE_FAST, 0xFF111111);
         menuTitle.borderSize = 0.75;
         menuTitle.text = "Mods";
         menuTitle.x = modsListView.x + modsListView.width * 0.5 - menuTitle.width * 0.5;
