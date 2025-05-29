@@ -1,16 +1,92 @@
 <box>
     <style>
-        #modItemRenderer {
-            background-opacity: 0.1;
+        .type-enabled {
+            color: #DDDDDD;
         }
-        #modItemRenderer:hover {
-            background-opacity: 0.9;
-            background-color: #222222;
-            border-radius: 10px;
-            border:2px solid #111111;
+        .type-disabled {
+            color: #888888;
         }
         .label {
             font-size: 19px;
+        }
+        .titleLabel {
+            font-size: 20px;
+            color: #DDDDDD;
+        }
+        .infoLabel {
+            font-size: 20px;
+            color: #AAAAAA;
+        }
+        .modMenuView {
+            background-color: #000000;
+            background-opacity: 0.2;
+        }
+        #modListView .listview-contents {
+            padding: 5px;
+        }
+        #modListView .listview-contents > .itemrenderer:selected {
+            border-radius: 10px;
+            border:2px solid #444444;
+        }
+        #modListView .vertical-scroll {
+            background-opacity: 0.1;
+            padding-left: 1px;
+            width: 12px;
+        }
+        #modListView .vertical-scroll .button {
+            background-color: #333333;
+            border-radius: 2px;
+            opacity: 1;
+            width: 11px;
+        }
+        #modItemRenderer {
+            width: 100%;
+            background-opacity: 0.1;
+        }
+        #modItemRenderer #icon {
+            height: 70px;
+            width: 70px;
+            vertical-align: center;
+        }
+        #modItemRenderer #text {
+            width: 100%;
+            vertical-align: top;
+            padding-top: 5px;
+        }
+        #modItemRenderer #summary {
+            width: 100%;
+            word-wrap: true;
+            font-size: 16px;
+            color: #999999;
+            vertical-align: center;
+            padding-left: 5px;
+        }
+        #modItemRenderer #enableSwitch {
+            horizontal-align: right;
+            vertical-align: center;
+        }
+        #modItemRenderer:selected {
+            background-opacity: 0.8;
+            background-color: #111111;
+        }
+        #modItemRenderer:hover {
+            border-radius: 10px;
+            background-color: #999999;
+        }
+        #modSearch {
+            font-size: 17px;
+            font-name: "Inconsolata";
+            background-opacity: 0.7;
+        }
+        #modSearch:active {
+            background-opacity: 1;
+        }
+        #modButton {
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #modButton:hover {
+            border-radius: 12px;
         }
     </style>
 </box>

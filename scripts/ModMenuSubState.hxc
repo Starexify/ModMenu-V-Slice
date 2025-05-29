@@ -31,6 +31,7 @@ import haxe.ui.components.Link;
 import haxe.ui.components.Spacer;
 import haxe.ui.components.Switch;
 import haxe.ui.components.TextField;
+import haxe.ui.containers.HBox;
 import haxe.ui.containers.ListView;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.containers.VBox;
@@ -46,17 +47,21 @@ import StringTools;
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
+    var totalMods:Int;
     var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera;
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
 
+    var modsBox:HBox = new HBox();
+    var modsTxt:Label = new Label();
+    var disModsTxt:Label = new Label();
+
     var menuTitle:FlxText = new FlxText();
     var modTitle:Label = new Label();
     var modSearch:TextField = new TextField();
     var modInfo:Label = new Label();
-    var modsSizeTxt:Label = new Label();
     var iconSprite:FunkinSprite = new FunkinSprite();
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
@@ -86,6 +91,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         enabledMods = PolymodHandler.getAllMods();
         disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.loadedModIds.contains(id));
+        totalMods = enabledMods.length + disabledMods.length;
 
         folderIcon.setGraphicSize(35, 35);
         configIcon.setGraphicSize(35, 35);
@@ -119,36 +125,34 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (mainMenuUI == null) return;
 
         // Setup list view
+        modsListView.id = "modListView";
+        modsListView.styleNames = "modMenuView";
         modsListView.camera = modMenuCam;
-        modsListView.backgroundColor = 0x000000;
         modsListView.setPosition(50, 125);
         modsListView.setSize(575, 525);
-        modsListView.customStyle.backgroundOpacity = 0.4;
 
         itemRenderer.id = "modItemRenderer";
-        itemRenderer.percentWidth = 100;
         itemRenderer.layout = new HorizontalLayout();
 
-        itemRenderer.addComponent(createComponent("Image", {id: "icon", width: 70, height: 70, verticalAlign: "center" }));
+        itemRenderer.addComponent(createComponent("Image", { id: "icon" }));
         var textContainer = new VBox();
         textContainer.percentWidth = 100;
-        textContainer.addComponent(createComponent("Label", {id: "text", percentWidth: 100, verticalAlign: "top", paddingTop: 5 }));
-        textContainer.addComponent(createComponent("Label", {id: "summary", fontSize: 16, percentWidth: 100, verticalAlign: "center", paddingLeft: 5 }));
+        textContainer.addComponent(createComponent("Label", {id: "text" }));
+        var summary:Label = createComponent("Label", {id: "summary" });
+        textContainer.addComponent(summary);
         itemRenderer.addComponent(textContainer);
-        itemRenderer.addComponent(createComponent("Switch", {id: "enableSwitch", horizontalAlign: "right", verticalAlign: "center", styleNames: "pill-switch"}));
+        itemRenderer.addComponent(createComponent("Switch", { id: "enableSwitch", styleNames: "pill-switch" }));
 
         modsListView.itemRenderer = itemRenderer;
         populateModList(modsListView, "");
         add(modsListView);
 
         // Setup info view
+        modInfoView.id = "modInfoView";
+        modInfoView.styleNames = "modMenuView";
         modInfoView.camera = modMenuCam;
-        modInfoView.backgroundColor = 0x000000;
-        modInfoView.customStyle.backgroundOpacity = 0.5;
-        modInfoView.x = 650;
-        modInfoView.y = 225;
-        modInfoView.width = 575;
-        modInfoView.height = 425;
+        modInfoView.setPosition(650, 225);
+        modInfoView.setSize(575, 425);
         add(modInfoView);
 
         // Setup title
@@ -161,22 +165,26 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(menuTitle);
 
         // Setup search field
+        modSearch.id = "modSearch";
         modSearch.placeholder = "Search...";
         modSearch.width = modsListView.width * 0.8;
         modSearch.height = 30;
         modSearch.x = modsListView.x + modsListView.width * 0.5 - modSearch.width * 0.5;
         modSearch.y = menuTitle.y + modSearch.height + 5;
-        modSearch.customStyle.backgroundOpacity = 0.5;
-        modSearch.customStyle.fontName = "Inconsolata";
-        modSearch.customStyle.fontSize = 17;
         add(modSearch);
 
         // Setup size text
-        modsSizeTxt.text = applyHTML("Showing " + (enabledMods.length + disabledMods.length) + " mods", "DDDDDD");
-        if (disabledMods.length > 0) modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
-        modsSizeTxt.x = modsListView.x + 10;
-        modsSizeTxt.y = modsListView.y - 30;
-        add(modsSizeTxt);
+        modsTxt.text = "Showing " + totalMods + " mods";
+        modsTxt.styleNames = "type-enabled";
+        modsBox.x = modsListView.x + 10;
+        modsBox.y = modsListView.y - 30;
+        modsBox.addComponent(modsTxt);
+        if (disabledMods.length > 0) {
+            disModsTxt.text = " (+" + disabledMods.length + " disabled)";
+            disModsTxt.styleNames = "type-disabled";
+            modsBox.addComponent(disModsTxt);
+        }
+        add(modsBox);
 
         // Setup icon
         iconSprite.x = modInfoView.x;
@@ -186,14 +194,14 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(iconSprite);
 
         // Setup mod title and info
-        modTitle.fontSize = 20;
+        modTitle.addClass("titleLabel");
         modTitle.x = iconSprite.x + 110;
         modTitle.y = iconSprite.y + 5;
         add(modTitle);
 
-        modInfo.fontSize = 20;
+        modInfo.addClass("infoLabel");
         modInfo.x = modTitle.x;
-        modInfo.y = modTitle.y + 20;
+        modInfo.y = modTitle.y + 25;
         add(modInfo);
 
         // Setup mod info container
@@ -222,28 +230,28 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
             {name: "configBtn", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, width: 48, height: 48, disabled: false,
                 onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
-            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
-            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16, disabled: true,
+            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, disabled: true,
                 onClick: () -> WindowUtil.openURL(issuesBtn.userData)},
-            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35,
                 onClick: () -> FileUtilSandboxed.openFolder("mods")},
-            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, fontSize: 16,
+            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35,
                 onClick: () -> close()}
         ];
 
         // Create buttons from config
         for (config in buttonConfigs) {
             var btn = new Button();
+            btn.id = "modButton";
+            btn.camera = modMenuCam;
             btn.text = config.text;
             btn.x = config.x;
             btn.y = config.y;
             btn.width = config.width;
             btn.height = config.height;
-            if (config.fontSize != null) btn.fontSize = config.fontSize;
             if (config.disabled != null) btn.disabled = config.disabled;
             btn.onClick = (event:MouseEvent) -> config.onClick();
-            btn.camera = modMenuCam;
 
             switch (config.name) {
                 case "modDirBtn": modDirBtn = btn;
@@ -288,8 +296,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
-    var htmlApplied:Bool = false;
-
     function populateModList(list:ListView, searchFilter:String = "") {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
@@ -313,27 +319,17 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         for (modData in filteredEnabledMods) {
             var mod = modData.mod;
-            var titleText = mod.title;
-            var summaryText = mod.metadata.get("summary") ?? "";
-            if (!htmlApplied) {
-                titleText = applyHTML(titleText, "DDDDDD");
-                summaryText = applyHTML(summaryText, "999999");
-            }
 
             list.dataSource.add({
                 originalIndex: modData.originalIndex,
                 icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame, opacity: 1 },
-                type: "enabled",
-                text: { text: titleText },
-                summary: { text: summaryText },
+                text: { text: mod.title, styleNames: "type-enabled" },
+                summary: { text: mod.metadata.get("summary") ?? "" },
                 enableSwitch: { selected: true,
                     onClick: (event:MouseEvent) -> toggleMod(mod, event.target.value, false)
                 }
             });
         }
-
-
-        htmlApplied = true;
 
         for (modData in filteredDisabledMods) {
             var modId = modData.modId;
@@ -349,7 +345,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 originalIndex: modData.originalIndex,
                 type: "disabled",
                 icon: { resource: FlxImageFrame.fromImage(bitmap).frame, opacity: 0.3 },
-                text: { text: modId },
+                text: { text: modId, styleNames: "type-disabled" },
                 summary: { text: "" },
                 enableSwitch: { selected: false,
                     onClick: (event:MouseEvent) -> toggleMod(disabledMods[modData.originalIndex], event.target.value, true)
@@ -367,10 +363,10 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         iconSprite.updateHitbox();
         iconSprite.visible = true;
 
-        modTitle.text = applyHTML(modMeta.title, "DDDDDD");
+        modTitle.text = modMeta.title;
 
         var version = !disabled ? SerializerUtil.serializeVersion(modMeta.modVersion) : "Disabled";
-        modInfo.text = applyHTML(version, "AAAAAA");
+        modInfo.text = version;
         updateButton(homepageBtn, modMeta.homepage);
         updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata?.issues);
 
@@ -469,10 +465,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
     }
 
-    function applyHTML(string, fontColor) {
-        return "<font color='#" + fontColor + "'>" + string + "</font>";
-    }
-
     function toggleMod(modMeta:ModMetadata, enable:Bool, disabled:Bool) {
         var modId = disabled ? modMeta : modMeta.id;
 
@@ -540,13 +532,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     }
 
     function updateModsSizeText(searchFilter:String = "", filteredCount:Int = -1) {
-        var totalMods = enabledMods.length + disabledMods.length;
-
         if (filteredCount == -1) filteredCount = getFilteredModCount(searchFilter);
 
         if (searchFilter == "") {
-            modsSizeTxt.text = "Showing " + totalMods + " mods";
-            if (disabledMods.length > 0) modsSizeTxt.text += " (+" + disabledMods.length + " disabled)";
+            modsTxt.text = "Showing " + totalMods + " mods";
+            if (disabledMods.length > 0) disModsTxt.text = "(+" + disabledMods.length + " disabled)";
         } else {
             // Count filtered disabled mods for display
             var filteredDisabledCount = 0;
@@ -556,8 +546,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 }
             }
 
-            modsSizeTxt.text = "Showing " + filteredCount + " of " + totalMods + " mods";
-            if (filteredDisabledCount > 0) modsSizeTxt.text += " (+" + filteredDisabledCount + " disabled)";
+            modsTxt.text = "Showing " + filteredCount + " of " + totalMods + " mods";
+            if (filteredDisabledCount > 0) disModsTxt.text = "(+" + filteredDisabledCount + " disabled)";
         }
     }
 
@@ -573,7 +563,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
     // Filter Functions
     function getFilteredModCount(searchFilter:String):Int {
-        if (searchFilter == null || searchFilter == "") return enabledMods.length + disabledMods.length;
+        if (searchFilter == null || searchFilter == "") return totalMods;
 
         var count = 0;
 
