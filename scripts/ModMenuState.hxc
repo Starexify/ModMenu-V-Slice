@@ -42,9 +42,9 @@ import Array;
 import StringTools;
 
 class ModMenuState extends ScriptedMusicBeatSubState {
-    var changedMod:Bool = false;
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
+    var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera;
 
@@ -261,8 +261,8 @@ class ModMenuState extends ScriptedMusicBeatSubState {
             var mod = enabledMods[i];
             list.dataSource.add({
                 icon: { resource: FlxImageFrame.fromImage(getModIcon(mod)).frame },
-                text: { text: "<font color='#DDDDDD'>" + mod.title + "</font>" },
-                summary: { text: "<font color='#999999'>" + (mod.metadata.get("summary") ?? "") + "</font>" },
+                text: { text: applyHTML(mod.title, "DDDDDD") },
+                summary: { text: applyHTML(mod.metadata.get("summary") ?? "", "999999") },
                 enableSwitch: { selected: true,
                     onClick: (event:MouseEvent) -> toggleMod(mod, event.target.value, false)
                 }
@@ -284,7 +284,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
                 icon: { resource: FlxImageFrame.fromImage(bitmap).frame, opacity: 0.3 },
                 text: { text: modId },
                 enableSwitch: { selected: false,
-                    onClick: (event:MouseEvent) -> toggleMod("mods/" + disabledMods[i], event.target.value, true)
+                    onClick: (event:MouseEvent) -> toggleMod(disabledMods[i], event.target.value, true)
                 }
             });
         }
@@ -299,10 +299,10 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         iconSprite.updateHitbox();
         iconSprite.visible = true;
 
-        modTitle.text = "<font color='#DDDDDD'>" + modMeta.title + "</font>";
+        modTitle.text = applyHTML(modMeta.title, "DDDDDD");
 
         var version = !disabled ? SerializerUtil.serializeVersion(modMeta.modVersion) : "Disabled";
-        modInfo.text = "<font color='#999999'>" + version + "</font>";
+        modInfo.text = applyHTML(version, "AAAAAA");
         updateButton(homepageBtn, modMeta.homepage);
         updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata?.issues);
 
@@ -401,43 +401,45 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
     }
 
-    // Handle this better without disabling it at runtime and rather when closing menu bcz this is so damn tideous
+    function applyHTML(string, fontColor) {
+        return "<font color='#" + fontColor + "'>" + string + "</font>";
+    }
+
     function toggleMod(modMeta:ModMetadata, enable:Bool, disabled:Bool) {
-        var jsonFile = enable ? "_polymod_meta_disabled.json" : "_polymod_meta.json";
-        var modPath = modMeta;
-        if (disabled) modMeta = FileUtilSandboxed.readJSONFromPath(modPath + "/" + jsonFile);
-        var metaPath = (disabled ? modPath : modMeta.modPath) + "/" + jsonFile;
+        var modId = disabled ? modMeta : modMeta.id;
 
-        FileUtilSandboxed.rename(metaPath, (enable ? "_polymod_meta.json" : "_polymod_meta_disabled.json"));
+        modStates.set(modId, enable);
+        if (!enable == disabled) modStates.remove(modId);
 
-/*        trace(modMeta.optionalDependencies);
-        trace(modMeta.dependencies);*/
-
-        // Also handle optional dependency with some promt if the user wants them !
-        if (disabled) {
-            for (dep in ReflectUtil.getFieldsOf(modMeta.dependencies)) {
-                var depVersion = ReflectUtil.getProperty(modMeta.dependencies, dep);
-                var depModVersion;
-                var modId = disabledMods.contains(dep) ? disabledMods.filter(modId -> modId == dep) : enabledMods.filter(meta -> meta.id == dep);
-                if (Std.isOfType(modId, Array)) {
-                    modId = modId[0];
-                    var disabledPath = "mods/" + modId + "/_polymod_meta_disabled.json";
-                    var enabledPath = "mods/" + modId + "/_polymod_meta.json";
-                    depModVersion = FileUtilSandboxed.readJSONFromPath(FileUtilSandboxed.fileExists(disabledPath) ? disabledPath : enabledPath).mod_version;
-                } else
-                    depModVersion = modId.modVersion.version;
-
-                if (VersionUtil.validateVersionStr(depModVersion, depVersion)) {
-                    trace("Should Enable Dependencies");
-                } else {
-                    trace("[ModMenu] Update dependency mod: " + modId + " to version: " + depVersion + " !");
-                    // Should leave json disabled
-                    //FileUtilSandboxed.rename(metaPath, "_polymod_meta_disabled.json");
-                }
+        if (modMeta.dependencies != null) {
+            trace(modMeta.dependencies);
+            if (disabled) {
+                handleDependencies(modMeta);
             }
         }
+    }
 
-        changedMod = true;
+    function handleDependencies(modMeta:ModMetadata) {
+        for (dep in ReflectUtil.getFieldsOf(modMeta.dependencies)) {
+            var depVersion = ReflectUtil.getProperty(modMeta.dependencies, dep);
+            var depModVersion = getDependencyVersion(dep);
+
+            if (VersionUtil.validateVersionStr(depModVersion, depVersion)) {
+                trace("Should Enable Dependencies");
+                // Optionally auto-enable the dependency
+                // toggleMod(getDependencyMeta(dep), true);
+            } else {
+                trace("[ModMenu] Update dependency mod: " + dep + " to version: " + depVersion + " !");
+            }
+        }
+    }
+
+    function getDependencyVersion(depId:String):String {
+        var disabledPath = "mods/" + depId + "/_polymod_meta_disabled.json";
+        var enabledPath = "mods/" + depId + "/_polymod_meta.json";
+
+        var path = FileUtilSandboxed.fileExists(disabledPath) ? disabledPath : enabledPath;
+        return FileUtilSandboxed.readJSONFromPath(path).mod_version;
     }
 
     function addLabel(text:String, bold:Bool = false):Label {
@@ -474,7 +476,7 @@ class ModMenuState extends ScriptedMusicBeatSubState {
 
     // Cleanup stuff
     override function close() {
-        if (changedMod) PolymodHandler.forceReloadAssets();
+        refreshModStates();
         cleanup();
         super.close();
     }
@@ -489,5 +491,18 @@ class ModMenuState extends ScriptedMusicBeatSubState {
         if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
         FlxG.state.persistentUpdate = prevPersUpd;
         if (prevCursor == false) Cursor.hide();
+    }
+
+    function refreshModStates() {
+        if (!modStates.keys().hasNext()) return;
+
+        for (mod in modStates.keyValueIterator()) {
+            var currentFile = mod.value ? "_polymod_meta_disabled.json" : "_polymod_meta.json";
+            var targetFile = mod.value ? "_polymod_meta.json" : "_polymod_meta_disabled.json";
+            var modPath = "mods/" + mod.key + "/" + currentFile;
+            FileUtilSandboxed.rename(modPath, targetFile);
+        }
+
+        PolymodHandler.forceReloadAssets();
     }
 }
