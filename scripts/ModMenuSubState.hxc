@@ -13,8 +13,6 @@ import funkin.util.WindowUtil;
 import flixel.FlxG;
 import flixel.FlxSubState;
 import flixel.graphics.frames.FlxImageFrame;
-import flixel.text.FlxText;
-import flixel.text.FlxTextBorderStyle;
 
 import polymod.ModMetadata;
 
@@ -62,7 +60,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modTitle:Label = new Label();
     var modSearch:TextField = new TextField();
     var modInfo:Label = new Label();
-    var iconSprite:FunkinSprite = new FunkinSprite();
+    var iconSprite:Image = new Image();
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
     var itemRenderer:ItemRenderer = new ItemRenderer();
@@ -128,7 +126,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modsListView.camera = modMenuCam;
         modsListView.id = "modListView";
         modsListView.addClass("modMenuView");
-        modsListView.setPosition(50, 125);
+        modsListView.left = 50;
+        modsListView.top = 125;
         modsListView.setSize(575, 525);
 
         itemRenderer.id = "modItemRenderer";
@@ -151,14 +150,15 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modInfoView.id = "modInfoView";
         modInfoView.styleNames = "modMenuView";
         modInfoView.camera = modMenuCam;
-        modInfoView.setPosition(650, 225);
+        modInfoView.left = 650;
+        modInfoView.top = 225;
         modInfoView.setSize(575, 425);
         add(modInfoView);
 
         // Setup title
         menuTitle = mainMenuUI.findComponent("menuTitle", Label);
         menuTitle.camera = modMenuCam;
-        menuTitle.left = modsListView.x + modsListView.width * 0.5 - menuTitle.width * 0.5;
+        menuTitle.left = modsListView.left + modsListView.width * 0.5 - menuTitle.width * 0.5;
         add(menuTitle);
 
         // Setup search field
@@ -167,17 +167,17 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modSearch.placeholder = "Search...";
         modSearch.width = modsListView.width * 0.8;
         modSearch.height = 30;
-        modSearch.x = modsListView.x + modsListView.width * 0.5 - modSearch.width * 0.5;
-        modSearch.y = menuTitle.y + modSearch.height + 5;
+        modSearch.left = modsListView.left + modsListView.width * 0.5 - modSearch.width * 0.5;
+        modSearch.top = menuTitle.top + modSearch.height + 5;
         add(modSearch);
 
         // Setup size text
         modsTxt.addClass("modSizeText");
         modsTxt.text = "Showing " + totalMods + " mods";
         modsTxt.styleNames = "type-enabled";
-        modsBox.x = modsListView.x + 10;
+        modsBox.left = modsListView.left + 10;
         modsBox.camera = modMenuCam;
-        modsBox.y = modsListView.y - 30;
+        modsBox.top = modsListView.top - 30;
         modsBox.addComponent(modsTxt);
         if (disabledMods.length > 0) {
             disModsTxt.addClass("modSizeText");
@@ -188,23 +188,24 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(modsBox);
 
         // Setup icon
-        iconSprite.x = modInfoView.x;
-        iconSprite.y = modInfoView.y - 165;
-        iconSprite.visible = false;
         iconSprite.camera = modMenuCam;
+        iconSprite.addClass("modIcon");
+        iconSprite.left = modInfoView.left;
+        iconSprite.top = modInfoView.top - 165;
+        iconSprite.visible = false;
         add(iconSprite);
 
         // Setup mod title and info
         modTitle.addClass("titleLabel");
         modTitle.camera = modMenuCam;
-        modTitle.x = iconSprite.x + 110;
-        modTitle.y = iconSprite.y + 5;
+        modTitle.left = iconSprite.left + 110;
+        modTitle.top = iconSprite.top + 5;
         add(modTitle);
 
         modInfo.addClass("infoLabel");
         modInfo.camera = modMenuCam;
-        modInfo.x = modTitle.x;
-        modInfo.y = modTitle.y + 25;
+        modInfo.left = modTitle.left;
+        modInfo.top = modTitle.top + 25;
         add(modInfo);
 
         // Setup mod info container
@@ -215,17 +216,17 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     function setupButtons() {
         // Button configurations
         var buttonConfigs = [
-            {name: "modDirBtn", id: "sqButton", text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, disabled: true,
+            {name: "modDirBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 48, top: modInfoView.top - 105, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
-            {name: "configBtn",  id: "sqButton", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, disabled: false,
+            {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: false,
                 onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
-            {name: "homepageBtn", id: "menuButton", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, disabled: true,
+            {name: "homepageBtn", id: "menuButton", text: "Homepage", left: iconSprite.left + 10, top: modInfoView.top - 50, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
-            {name: "issuesBtn", id: "menuButton", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50,  disabled: true,
+            {name: "issuesBtn", id: "menuButton", text: "Issues", left: iconSprite.left + Std.int(modInfoView.width * 0.5) + 20, top: modInfoView.top - 50, disabled: true,
                 onClick: () -> WindowUtil.openURL(issuesBtn.userData)},
-            {name: "modsDirBtn",id: "menuButton",  text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20,
+            {name: "modsDirBtn", id: "menuButton", text: "Open Mods Folder", left: modsListView.left + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, top: modsListView.top + modsListView.height + 20,
                 onClick: () -> FileUtilSandboxed.openFolder("mods")},
-            {name: "backButton", id: "menuButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20,
+            {name: "backButton", id: "menuButton", text: "Exit Menu", left: modsListView.left + modsListView.width + 20, top: modsListView.top + modsListView.height + 20,
                 onClick: () -> close()}
         ];
 
@@ -235,8 +236,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             btn.id = config.id;
             btn.camera = modMenuCam;
             btn.text = config.text;
-            btn.x = config.x;
-            btn.y = config.y;
+            btn.left = config.left;
+            btn.top = config.top;
             if (config.disabled != null) btn.disabled = config.disabled;
             btn.onClick = (event:MouseEvent) -> config.onClick();
 
@@ -355,9 +356,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (cachedMeta == modMeta) return;
         cachedMeta = modMeta;
 
-        iconSprite.loadBitmapData(getModIcon(modMeta, disabled));
-        iconSprite.setGraphicSize(100, 100);
-        iconSprite.updateHitbox();
+        iconSprite.value = FlxImageFrame.fromImage(getModIcon(modMeta, disabled)).frame;
         iconSprite.visible = true;
 
         modTitle.text = modMeta.title;

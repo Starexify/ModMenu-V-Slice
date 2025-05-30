@@ -12,6 +12,10 @@
         .modSizeText {
             filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
         }
+        .modIcon {
+            height: 100px;
+            width: 100px;
+        }
         .titleLabel {
             color: #DDDDDD;
             font-size: 20px;
