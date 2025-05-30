@@ -9,16 +9,22 @@ import openfl.filters.ShaderFilter;
 import haxe.ui.RuntimeComponentBuilder;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
+    var mapsTools:MapsTools = new MapsTools();
+
     var configValues:Dynamic;
     var configCam:FunkinCamera;
 
+    function new(config:Dynamic) {
+        super();
+        configValues = config;
+    }
+
     override function create() {
         super.create();
+        trace(configValues);
 
         setupCamera();
         setupUI();
-
-        trace("In Config SubState !");
     }
 
     override function update(elapsed:Float) {

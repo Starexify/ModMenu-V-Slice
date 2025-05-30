@@ -11,8 +11,17 @@ import funkin.util.ReflectUtil;
 
 class ModMenuMain extends ScriptedModule {
 
+    var config:JsonConfig;
+
+    var configValues:Dynamic = {
+        string: "Funkin",
+        integer: 69
+    };
+
     function new() {
         super("ModMenuMain");
+
+        config = new JsonConfig("modMenu", configValues);
     }
 
     override function onCreate(event:ScriptEvent) {

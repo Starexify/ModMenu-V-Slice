@@ -9,6 +9,9 @@
     }
   ],
   "metadata": {
+    "config": {
+      "json": "config/modMenu"
+    },
     "tag": ["QoL", "#6a6dea", "#22228c"],
     "issues": "https://github.com/Starexify/ModMenu-V-Slice/issues",
     "summary": "Adds a mod menu with information and utilities for your installed mods.",

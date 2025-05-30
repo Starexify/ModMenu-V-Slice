@@ -43,6 +43,8 @@ import Array;
 import StringTools;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
+    var mapsTools:MapsTools = new MapsTools();
+
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
     var totalMods:Int;
@@ -51,6 +53,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
+    var configuration:Dynamic;
 
     var modsBox:HBox = new HBox();
     var modsTxt:Label = new Label();
@@ -229,8 +232,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         var buttonConfigs = [
             {name: "modDirBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 48, top: modInfoView.top - 105, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
-            {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: false,
-                onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
+            {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: true,
+                onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration))},
             {name: "homepageBtn", id: "menuButton", text: "Homepage", left: iconSprite.left + 10, top: modInfoView.top - 50, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
             {name: "issuesBtn", id: "menuButton", text: "Issues", left: iconSprite.left + Std.int(modInfoView.width * 0.5) + 20, top: modInfoView.top - 50, disabled: true,
@@ -325,8 +328,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 var cleanString = tagProp.substring(1, tagProp.length - 1);
                 tagArray = cleanString.split(",").map(s -> StringTools.trim(s));
             }
-            trace(tagArray);
             var tagCont = tagArray.length > 1 ? { backgroundColor: tagArray[1], borderColor: tagArray[2], borderSize: 1.5 } : { };
+
             list.dataSource.add({
                 originalIndex: i,
                 type: "enabled",
@@ -387,6 +390,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modDirBtn.disabled = false;
         modDirBtn.userData = modMeta.id;
 
+        configuration = disabled ? null : modMeta.metadata.get("config");
+        configBtn.disabled = (configuration == null);
+
         modInfoContainer.removeAllComponents();
 
         // Description
@@ -430,14 +436,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                     addLabel("Extra Links:");
 
                     // Convert string to map
-                    var linksMap = new StringMap();
-                    var cleanString = extraLinks.substring(1, extraLinks.length - 1); // Remove brackets
-                    var pairs = cleanString.split(",");
-
-                    for (pair in pairs) {
-                        var parts = StringTools.trim(pair).split(" => ");
-                        if (parts.length == 2) linksMap.set(StringTools.trim(parts[0]), StringTools.trim(parts[1]));
-                    }
+                    var linksMap = mapsTools.stringToStringMap(extraLinks);
 
                     // Use the map
                     for (key in linksMap.keys()) {
@@ -528,7 +527,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 trace(depName);
             }
         }
-
     }
 
     function handleDependents(modId:String, removeState:Bool) {
@@ -589,13 +587,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     // Other
     override function onOpenSubStateComplete(targetState:FlxSubState):Void {
         super.onOpenSubStateComplete(targetState);
-        trace("Open SubState");
         modMenuCam.visible = false;
     }
 
     override function onCloseSubStateComplete(targetState:FlxSubState):Void {
         super.onCloseSubStateComplete(targetState);
-        trace("Close SubState");
         FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
         modMenuCam.visible = true;
     }
