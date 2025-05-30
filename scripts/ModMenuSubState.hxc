@@ -53,7 +53,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
-    var configuration:Dynamic;
+    var configuration:String;
 
     var modsBox:HBox = new HBox();
     var modsTxt:Label = new Label();
@@ -391,6 +391,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modDirBtn.userData = modMeta.id;
 
         configuration = disabled ? null : modMeta.metadata.get("config");
+        if (!disabled && configuration == null && FileUtilSandboxed.fileExists("config/" + modMeta.id + ".json")) configuration = "[json => config/" + modMeta.id + "]";
         configBtn.disabled = (configuration == null);
 
         modInfoContainer.removeAllComponents();

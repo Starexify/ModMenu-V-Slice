@@ -1,27 +1,37 @@
 import funkin.graphics.FunkinCamera;
 import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.modding.base.ScriptedMusicBeatSubState;
+import funkin.util.FileUtilSandboxed;
 
 import flixel.FlxG;
 
 import openfl.filters.ShaderFilter;
 
+import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
+    var jsonCfg:JsonConfig;
 
-    var configValues:Dynamic;
+    var configValues:StringMap<String>;
     var configCam:FunkinCamera;
 
-    function new(config:Dynamic) {
+    function new(config:String) {
         super();
-        configValues = config;
+        configValues = mapsTools.stringToStringMap(config);
     }
 
     override function create() {
         super.create();
-        trace(configValues);
+        if (!configValues.keys().hasNext()) trace("Mod config is empty, please add one !");
+        for (cfg in configValues.keyValueIterator()) {
+            switch (cfg.key) {
+                case "json": handleJsonConfig(cfg.value);
+                case "funkin": handleFunkConfig(cfg.value);
+                default: close();
+            }
+        }
 
         setupCamera();
         setupUI();
@@ -44,9 +54,23 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
     function setupUI() {
         var configMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/config-ui"));
         if (configMenuUI == null) return;
-
     }
 
+    // Handler methods
+    function handleJsonConfig(path:String) {
+        trace(path);
+        trace("JSON CONFIG DETECTED!");
+        jsonCfg = new JsonConfig();
+        jsonCfg.setFilePath(path);
+
+        trace(jsonCfg.getConfig());
+    }
+
+    function handleFunkConfig(value:String) {
+        trace("FUNKIN CONFIG DETECTED!");
+    }
+
+    // Cleanup stuff
     override function close() {
         cleanup();
         super.close();
