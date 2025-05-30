@@ -206,7 +206,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Setup mod info container
         modInfoContainer.styleNames = "modInfoContainer";
-        modInfoContainer.width = modInfoView.width - 24;
         modInfoView.addComponent(modInfoContainer);
     }
 
@@ -511,7 +510,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         var label = new Label();
         label.styleNames = "modInfo";
         label.text = text;
-        label.width = modInfoContainer.width - 20;
         modInfoContainer.addComponent(label);
         return label;
     }

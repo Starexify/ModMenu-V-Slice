@@ -10,21 +10,27 @@
             font-size: 19px;
         }
         .titleLabel {
-            font-size: 20px;
             color: #DDDDDD;
+            font-size: 20px;
+            filter: drop-shadow(2, 45, #333333, 1, 6, 6, 3, 3);
         }
         .infoLabel {
             font-size: 20px;
             color: #AAAAAA;
+            filter: drop-shadow(2, 45, 0, 1, 6, 6, 3, 3);
         }
         .modInfoContainer {
-            margin: 10px;
+            width: 100%;
+            padding: 5px;
         }
         .modInfo {
-            word-wrap: true;
+            width: 100%;
             font-size: 16px;
+            color: #FFFFFF
+            filter: drop-shadow(2, 45, #000000, 1, 6, 6, 3, 3);
         }
         .modMenuView {
+            content-width: 100%;
             background-color: #000000;
             background-opacity: 0.2;
         }
@@ -62,7 +68,6 @@
         }
         #modItemRenderer #summary {
             width: 100%;
-            word-wrap: true;
             font-size: 16px;
             color: #999999;
             vertical-align: center;
