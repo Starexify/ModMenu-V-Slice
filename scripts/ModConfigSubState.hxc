@@ -6,6 +6,8 @@ import flixel.FlxG;
 
 import openfl.filters.ShaderFilter;
 
+import haxe.ui.RuntimeComponentBuilder;
+
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var configValues:Dynamic;
     var configCam:FunkinCamera;
@@ -14,6 +16,7 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         super.create();
 
         setupCamera();
+        setupUI();
 
         trace("In Config SubState !");
     }
@@ -21,15 +24,26 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
     override function update(elapsed:Float) {
         super.update(elapsed);
 
-        if (controls.BACK) { close(); cleanup(); }
+        if (controls.BACK) { close(); }
     }
 
-    // Helper methods
+    // Setup methods
     function setupCamera() {
         FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
         configCam = new FunkinCamera("configCam");
         configCam.bgColor = 0x5F000000;
         FlxG.cameras.add(configCam, false);
+    }
+
+    function setupUI() {
+        var configMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/config-ui"));
+        if (configMenuUI == null) return;
+
+    }
+
+    override function close() {
+        cleanup();
+        super.close();
     }
 
     function cleanup() {

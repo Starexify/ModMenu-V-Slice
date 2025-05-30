@@ -107,10 +107,10 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     override function update(elapsed:Float) {
         super.update(elapsed);
 
-        //if (controls.BACK) { close(); cleanup(); }
+        //if (controls.BACK) { close(); }
     }
 
-    // Helper methods
+    // Setup methods
     function setupCamera() {
         FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
         modMenuCam = new FunkinCamera("modMenuCam");
@@ -121,7 +121,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     function setupUI() {
         var handlerWindow = RuntimeComponentBuilder.fromAsset(Paths.ui("base-style"));
         if (handlerWindow == null) return;
-        var mainMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/style"));
+        var mainMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/menu-ui"));
         if (mainMenuUI == null) return;
 
         // Setup list view
@@ -209,44 +209,31 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modInfoView.addComponent(modInfoContainer);
     }
 
-    function createComponent(type:String, props:Dynamic):Dynamic {
-        var comp = switch (type) {
-            case "Image": new Image();
-            case "Label": new Label();
-            case "Switch": new Switch();
-            default: null;
-        }
-        for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
-        return comp;
-    }
-
     function setupButtons() {
         // Button configurations
         var buttonConfigs = [
-            {name: "modDirBtn", text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, width: 48, height: 48, disabled: true,
+            {name: "modDirBtn", id: "sqButton" , text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
-            {name: "configBtn", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, width: 48, height: 48, disabled: false,
+            {name: "configBtn",  id: "sqButton", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, disabled: false,
                 onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
-            {name: "homepageBtn", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, disabled: true,
+            {name: "homepageBtn", id: "menuButton", text: "Homepage", x: iconSprite.x + 10, y: modInfoView.y - 50, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
-            {name: "issuesBtn", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50, width: Std.int(modInfoView.width * 0.5 - 30), height: 35, disabled: true,
+            {name: "issuesBtn", id: "menuButton", text: "Issues", x: iconSprite.x + Std.int(modInfoView.width * 0.5) + 20, y: modInfoView.y - 50,  disabled: true,
                 onClick: () -> WindowUtil.openURL(issuesBtn.userData)},
-            {name: "modsDirBtn", text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35,
+            {name: "modsDirBtn",id: "menuButton",  text: "Open Mods Folder", x: modsListView.x + modsListView.width - Std.int(modInfoView.width * 0.5 - 30) + 5, y: modsListView.y + modsListView.height + 20,
                 onClick: () -> FileUtilSandboxed.openFolder("mods")},
-            {name: "backButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20, width: Std.int(modInfoView.width * 0.5 - 30), height: 35,
+            {name: "backButton", id: "menuButton", text: "Exit Menu", x: modsListView.x + modsListView.width + 20, y: modsListView.y + modsListView.height + 20,
                 onClick: () -> close()}
         ];
 
         // Create buttons from config
         for (config in buttonConfigs) {
             var btn = new Button();
-            btn.id = "modButton";
+            btn.id = config.id;
             btn.camera = modMenuCam;
             btn.text = config.text;
             btn.x = config.x;
             btn.y = config.y;
-            btn.width = config.width;
-            btn.height = config.height;
             if (config.disabled != null) btn.disabled = config.disabled;
             btn.onClick = (event:MouseEvent) -> config.onClick();
 
@@ -296,6 +283,18 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
             updateModsSizeText(searchText);
         }
+    }
+
+    // Helper methods
+    function createComponent(type:String, props:Dynamic):Dynamic {
+        var comp = switch (type) {
+            case "Image": new Image();
+            case "Label": new Label();
+            case "Switch": new Switch();
+            default: null;
+        }
+        for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
+        return comp;
     }
 
     function populateModList(list:ListView, searchFilter:String = "") {
@@ -394,7 +393,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                         var url = ReflectUtil.getProperty(extraLinks, fieldName);
                         if (url != null && url != "") {
                             var link = new Link();
-                            link.styleNames = "modInfo";
+                            link.styleNames = "modInfoLink";
                             link.text = " " + fieldName;
                             link.onClick = (event:MouseEvent) -> WindowUtil.openURL(url);
                             modInfoContainer.addComponent(link);
@@ -423,7 +422,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                     // Use the map
                     for (key in linksMap.keys()) {
                         var link = new Link();
-                        link.styleNames = "modInfo";
+                        link.styleNames = "modInfoLink";
                         link.text = " " + key;
                         link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
                         modInfoContainer.addComponent(link);
@@ -446,7 +445,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
                 if (contributor.url != null && contributor.url != "") {
                     var link = new Link();
-                    link.styleNames = "modInfo";
+                    link.styleNames = "modInfoLink";
                     link.text = nameText;
                     link.onClick = (event:MouseEvent) -> WindowUtil.openURL(contributor.url);
                     modInfoContainer.addComponent(link);
@@ -475,6 +474,30 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
+    function addLabel(text:String):Label {
+        var label = new Label();
+        label.styleNames = "modInfo";
+        label.text = text;
+        modInfoContainer.addComponent(label);
+        return label;
+    }
+
+    function addSpacer() {
+        var spacer = new Spacer();
+        spacer.height = 15;
+        modInfoContainer.addComponent(spacer);
+    }
+
+    function getModIcon(mod:ModMetadata, disabled:Bool = false):BitmapData {
+        if (!disabled && mod.icon != null)
+            return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+
+        if (disabled && FileUtilSandboxed.fileExists("mods/" + mod.title + "/_polymod_icon.png"))
+            return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
+
+        return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+    }
+     /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {
         if (dependencies.dependencies != null) {
             var depFields = ReflectUtil.getFieldsOf(dependencies.dependencies);
@@ -504,25 +527,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
-    function addLabel(text:String):Label {
-        var label = new Label();
-        label.styleNames = "modInfo";
-        label.text = text;
-        modInfoContainer.addComponent(label);
-        return label;
-    }
-
-    function addSpacer() {
-        var spacer = new Spacer();
-        spacer.height = 15;
-        modInfoContainer.addComponent(spacer);
-    }
-
-    function updateButton(btn:Button, url:String) {
-        btn.disabled = (url == null || url == "");
-        if (!btn.disabled) btn.userData = url;
-    }
-
+     /// Update Methods
     function updateModsSizeText(searchFilter:String = "") {
         if (searchFilter == "") {
             modsTxt.text = "Showing " + totalMods + " mods";
@@ -541,17 +546,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
-    function getModIcon(mod:ModMetadata, disabled:Bool = false):BitmapData {
-        if (!disabled && mod.icon != null)
-            return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
-
-        if (disabled && FileUtilSandboxed.fileExists("mods/" + mod.title + "/_polymod_icon.png"))
-            return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
-
-        return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+    function updateButton(btn:Button, url:String) {
+        btn.disabled = (url == null || url == "");
+        if (!btn.disabled) btn.userData = url;
     }
-
-    // Filter Functions
+     /// Filter methods
     function applySearchFilter(list:ListView, searchFilter:String) {
         var filter = searchFilter.toLowerCase();
         list.dataSource.filter((index:Int, item:Dynamic) -> {

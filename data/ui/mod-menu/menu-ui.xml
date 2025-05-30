@@ -26,8 +26,13 @@
         .modInfo {
             width: 100%;
             font-size: 16px;
-            color: #FFFFFF
-            filter: drop-shadow(2, 45, #000000, 1, 6, 6, 3, 3);
+            color: #FFFFFF;
+            filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
+        }
+        .modInfoLink {
+            font-size: 16px;
+            width: 100%;
+            filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
         }
         .modMenuView {
             content-width: 100%;
@@ -93,12 +98,22 @@
         #modSearch:active {
             background-opacity: 1;
         }
-        #modButton {
+        #menuButton {
+            width: 257px;
+            height: 35px;
             border-radius: 5px;
             font-size: 16px;
         }
-        #modButton:hover {
+        #menuButton:hover {
             border-radius: 12px;
+        }
+        #sqButton {
+            width: 48px;
+            height: 48px;
+            border-radius: 0px;
+        }
+        #sqButton:hover {
+            border-radius: 5px;
         }
     </style>
 </box>
