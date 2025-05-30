@@ -87,10 +87,25 @@
             width: 70px;
             vertical-align: center;
         }
-        #modItemRenderer #text {
-            width: 100%;
+        #titleContainer {
             vertical-align: top;
             padding-top: 5px;
+
+        }
+        #tagContainer {
+            background-color: #000000;
+            border-radius: 9px;
+            border: 2px solid #444444;
+            padding: 5px;
+            max-width: 40%;
+        }
+        #titleContainer #text {
+            width: 100%
+        }
+        #tagContainer #tag {
+            word-wrap: false;
+            color: #FFFFFF;
+            max-width: 40%;
         }
         #modItemRenderer #summary {
             width: 100%;

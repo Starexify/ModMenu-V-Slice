@@ -134,16 +134,27 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         itemRenderer.layout = new HorizontalLayout();
 
         itemRenderer.addComponent(createComponent("Image", { id: "icon" }));
+
         var textContainer = new VBox();
         textContainer.percentWidth = 100;
-        textContainer.addComponent(createComponent("Label", { id: "text" }));
-        var summary:Label = createComponent("Label", {id: "summary" });
-        textContainer.addComponent(summary);
+
+        var titleContainer = new HBox();
+        titleContainer.id = "titleContainer";
+        titleContainer.percentWidth = 100;
+        titleContainer.addComponent(createComponent("Label", { id: "text" }));
+        textContainer.addComponent(titleContainer);
+
+        var tagContainer:VBox = new VBox();
+        tagContainer.id ="tagContainer";
+        tagContainer.addComponent(createComponent("Label", { id: "tag" }));
+        titleContainer.addComponent(tagContainer);
+
+        textContainer.addComponent(createComponent("Label", {id: "summary" }));
         itemRenderer.addComponent(textContainer);
         itemRenderer.addComponent(createComponent("Switch", { id: "enableSwitch", styleNames: "pill-switch" }));
 
         modsListView.itemRenderer = itemRenderer;
-        populateModList(modsListView, "");
+        populateModList(modsListView);
         add(modsListView);
 
         // Setup info view
@@ -158,7 +169,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         // Setup title
         menuTitle = mainMenuUI.findComponent("menuTitle", Label);
         menuTitle.camera = modMenuCam;
-        menuTitle.left = modsListView.left + modsListView.width * 0.5 - menuTitle.width * 0.5;
+        menuTitle.left = modsListView.left + modsListView.width * 0.45;
         add(menuTitle);
 
         // Setup search field
@@ -168,7 +179,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modSearch.width = modsListView.width * 0.8;
         modSearch.height = 30;
         modSearch.left = modsListView.left + modsListView.width * 0.5 - modSearch.width * 0.5;
-        modSearch.top = menuTitle.top + modSearch.height + 5;
+        modSearch.top = menuTitle.top + modSearch.height + 15;
         add(modSearch);
 
         // Setup size text
@@ -301,19 +312,19 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         return comp;
     }
 
-    function populateModList(list:ListView, searchFilter:String = "") {
+    function populateModList(list:ListView) {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
 
         for (i in 0...enabledMods.length) {
             var mod = enabledMods[i];
-
             var iconResource = FlxImageFrame.fromImage(getModIcon(mod)).frame;
 
             list.dataSource.add({
                 originalIndex: i,
                 type: "enabled",
                 modId: mod.id,
+                tag: { text: mod.metadata.get("tag") ?? "" },
                 iconResource: iconResource,
                 icon: { resource: iconResource, opacity: 1 },
                 text: { text: mod.title, styleNames: "type-enabled" },
@@ -339,6 +350,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 originalIndex: i,
                 type: "disabled",
                 modId: modId,
+                tag: { text: "Disabled" },
                 iconResource: iconResource,
                 icon: { resource: iconResource, opacity: 0.3 },
                 text: { text: modId, styleNames: "type-disabled" },
@@ -348,8 +360,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 }
             });
         }
-
-        if (searchFilter != "") applySearchFilter(list, searchFilter);
     }
 
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata, disabled:Bool) {
