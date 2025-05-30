@@ -145,7 +145,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         textContainer.addComponent(titleContainer);
 
         var tagContainer:VBox = new VBox();
-        tagContainer.id ="tagContainer";
+        tagContainer.id = "tagContainer";
         tagContainer.addComponent(createComponent("Label", { id: "tag" }));
         titleContainer.addComponent(tagContainer);
 
@@ -319,12 +319,20 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         for (i in 0...enabledMods.length) {
             var mod = enabledMods[i];
             var iconResource = FlxImageFrame.fromImage(getModIcon(mod)).frame;
-
+            var tagArray = [];
+            if (mod.metadata.exists("tag")) {
+                var tagProp = mod.metadata.get("tag");
+                var cleanString = tagProp.substring(1, tagProp.length - 1);
+                tagArray = cleanString.split(",").map(s -> StringTools.trim(s));
+            }
+            trace(tagArray);
+            var tagCont = tagArray.length > 1 ? { backgroundColor: tagArray[1], borderColor: tagArray[2], borderSize: 1.5 } : { };
             list.dataSource.add({
                 originalIndex: i,
                 type: "enabled",
                 modId: mod.id,
-                tag: { text: mod.metadata.get("tag") ?? "" },
+                tagContainer: tagCont,
+                tag: { text: tagArray[0] ?? "" },
                 iconResource: iconResource,
                 icon: { resource: iconResource, opacity: 1 },
                 text: { text: mod.title, styleNames: "type-enabled" },
