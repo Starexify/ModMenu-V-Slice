@@ -9,6 +9,9 @@
         .label {
             font-size: 19px;
         }
+        .modSizeText {
+            filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
+        }
         .titleLabel {
             color: #DDDDDD;
             font-size: 20px;
@@ -50,6 +53,12 @@
             opacity: 1;
             width: 11px;
         }
+        #menuTitle {
+            font-name: "fonts/Tardling-Solid.ttf";
+            color: #DDDDDD;
+            font-size: 24px;
+            filter: drop-shadow(2, 45, #333333, 1, 6, 6, 3, 3);
+        }
         #modListView .listview-contents {
             padding: 5px;
         }
@@ -60,6 +69,14 @@
         #modItemRenderer {
             width: 100%;
             background-opacity: 0.1;
+        }
+        #modItemRenderer:selected {
+            background-opacity: 0.8;
+            background-color: #111111;
+        }
+        #modItemRenderer:hover {
+            border-radius: 10px;
+            background-color: #999999;
         }
         #modItemRenderer #icon {
             height: 70px;
@@ -78,17 +95,22 @@
             vertical-align: center;
             padding-left: 5px;
         }
+        #modItemRenderer:hover #summary {
+            color: #444444;
+        }
         #modItemRenderer #enableSwitch {
             horizontal-align: right;
             vertical-align: center;
         }
-        #modItemRenderer:selected {
-            background-opacity: 0.8;
-            background-color: #111111;
-        }
-        #modItemRenderer:hover {
-            border-radius: 10px;
-            background-color: #999999;
+        #modItemRenderer #enableSwitch @keyframes switchAnimateSelectedPill {
+            0% {
+                pos: 0;
+                background-color: $default-background-color;
+            }
+            100% {
+                pos: 100;
+                background-color: #149c22;
+            }
         }
         #modSearch {
             font-size: 17px;
@@ -116,4 +138,6 @@
             border-radius: 5px;
         }
     </style>
+
+    <label id="menuTitle" text="Mods" style="top: 16px;"/>
 </box>

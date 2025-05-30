@@ -50,7 +50,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var totalMods:Int;
     var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
-    var modMenuCam:FunkinCamera;
+    var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
 
@@ -58,7 +58,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modsTxt:Label = new Label();
     var disModsTxt:Label = new Label();
 
-    var menuTitle:FlxText = new FlxText();
+    var menuTitle:Label = new Label();
     var modTitle:Label = new Label();
     var modSearch:TextField = new TextField();
     var modInfo:Label = new Label();
@@ -113,7 +113,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     // Setup methods
     function setupCamera() {
         FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
-        modMenuCam = new FunkinCamera("modMenuCam");
         modMenuCam.bgColor = 0x5F000000;
         FlxG.cameras.add(modMenuCam, false);
     }
@@ -123,11 +122,12 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (handlerWindow == null) return;
         var mainMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/menu-ui"));
         if (mainMenuUI == null) return;
+        mainMenuUI.camera = modMenuCam;
 
         // Setup list view
-        modsListView.id = "modListView";
-        modsListView.styleNames = "modMenuView";
         modsListView.camera = modMenuCam;
+        modsListView.id = "modListView";
+        modsListView.addClass("modMenuView");
         modsListView.setPosition(50, 125);
         modsListView.setSize(575, 525);
 
@@ -156,16 +156,14 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(modInfoView);
 
         // Setup title
-        menuTitle.setFormat(Paths.font("Tardling-Solid.ttf"), 30, 0xFFFFFF, "center", FlxTextBorderStyle.OUTLINE_FAST, 0xFF111111);
-        menuTitle.borderSize = 0.75;
-        menuTitle.text = "Mods";
-        menuTitle.x = modsListView.x + modsListView.width * 0.5 - menuTitle.width * 0.5;
-        menuTitle.y = 16;
+        menuTitle = mainMenuUI.findComponent("menuTitle", Label);
         menuTitle.camera = modMenuCam;
+        menuTitle.left = modsListView.x + modsListView.width * 0.5 - menuTitle.width * 0.5;
         add(menuTitle);
 
         // Setup search field
         modSearch.id = "modSearch";
+        modSearch.camera = modMenuCam;
         modSearch.placeholder = "Search...";
         modSearch.width = modsListView.width * 0.8;
         modSearch.height = 30;
@@ -174,12 +172,15 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         add(modSearch);
 
         // Setup size text
+        modsTxt.addClass("modSizeText");
         modsTxt.text = "Showing " + totalMods + " mods";
         modsTxt.styleNames = "type-enabled";
         modsBox.x = modsListView.x + 10;
+        modsBox.camera = modMenuCam;
         modsBox.y = modsListView.y - 30;
         modsBox.addComponent(modsTxt);
         if (disabledMods.length > 0) {
+            disModsTxt.addClass("modSizeText");
             disModsTxt.text = " (+" + disabledMods.length + " disabled)";
             disModsTxt.styleNames = "type-disabled";
             modsBox.addComponent(disModsTxt);
@@ -195,11 +196,13 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Setup mod title and info
         modTitle.addClass("titleLabel");
+        modTitle.camera = modMenuCam;
         modTitle.x = iconSprite.x + 110;
         modTitle.y = iconSprite.y + 5;
         add(modTitle);
 
         modInfo.addClass("infoLabel");
+        modInfo.camera = modMenuCam;
         modInfo.x = modTitle.x;
         modInfo.y = modTitle.y + 25;
         add(modInfo);
@@ -212,7 +215,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     function setupButtons() {
         // Button configurations
         var buttonConfigs = [
-            {name: "modDirBtn", id: "sqButton" , text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, disabled: true,
+            {name: "modDirBtn", id: "sqButton", text: "", x: modInfoView.x + modInfoView.width - 48, y: modInfoView.y - 105, disabled: true,
                 onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
             {name: "configBtn",  id: "sqButton", text: "", x: modInfoView.x + modInfoView.width - 116, y: modInfoView.y - 105, disabled: false,
                 onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState"))},
@@ -497,7 +500,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
     }
-     /// Handler methods
+    /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {
         if (dependencies.dependencies != null) {
             var depFields = ReflectUtil.getFieldsOf(dependencies.dependencies);
@@ -527,7 +530,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
 
-     /// Update Methods
+    /// Update Methods
     function updateModsSizeText(searchFilter:String = "") {
         if (searchFilter == "") {
             modsTxt.text = "Showing " + totalMods + " mods";
@@ -550,7 +553,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         btn.disabled = (url == null || url == "");
         if (!btn.disabled) btn.userData = url;
     }
-     /// Filter methods
+    /// Filter methods
     function applySearchFilter(list:ListView, searchFilter:String) {
         var filter = searchFilter.toLowerCase();
         list.dataSource.filter((index:Int, item:Dynamic) -> {
