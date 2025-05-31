@@ -8,6 +8,8 @@ import funkin.util.Constants;
 import flixel.FlxG;
 import funkin.graphics.FunkinSprite;
 import funkin.util.ReflectUtil;
+import funkin.ui.credits.CreditsState;
+import funkin.ui.story.StoryMenuState;
 
 class ModMenuMain extends ScriptedModule {
 
@@ -41,6 +43,7 @@ class ModMenuMain extends ScriptedModule {
     }
 
     override function onUpdate(event:UpdateScriptEvent) {
+        if (Std.isOfType(FlxG.state, CreditsState) || Std.isOfType(FlxG.state, StoryMenuState)) return;
         if (FlxG.keys.justPressed.TAB && ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name") != "ModMenuSubState") {
             FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
         }

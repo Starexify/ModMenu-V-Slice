@@ -41,6 +41,9 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
+import funkin.util.Constants;
+import funkin.ui.options.OptionsState;
+import funkin.ui.credits.CreditsState;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -231,9 +234,13 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         // Button configurations
         var buttonConfigs = [
             {name: "modDirBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 48, top: modInfoView.top - 105, disabled: true,
-                onClick: () -> FileUtilSandboxed.openFolder("mods/" + modDirBtn.userData)},
+                onClick: () -> FileUtilSandboxed.openFolder(modDirBtn.userData)},
             {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: true,
-                onClick: () -> this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration))},
+                onClick: () -> {
+                    if (configBtn.userData == "funkin") FlxG.switchState(new OptionsState());
+                    else this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration));
+                }
+            },
             {name: "homepageBtn", id: "menuButton", text: "Homepage", left: iconSprite.left + 10, top: modInfoView.top - 50, disabled: true,
                 onClick: () -> WindowUtil.openURL(homepageBtn.userData)},
             {name: "issuesBtn", id: "menuButton", text: "Issues", left: iconSprite.left + Std.int(modInfoView.width * 0.5) + 20, top: modInfoView.top - 50, disabled: true,
@@ -277,8 +284,10 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             var selectedItem = modsListView.selectedItem;
             if (selectedItem.type == "disabled")
                 updateModInfo(modInfoView, FileUtilSandboxed.readJSONFromPath("mods/" + disabledMods[selectedItem.originalIndex] + "/_polymod_meta_disabled.json"), true);
-            else
+            else if (selectedItem.type == "enabled")
                 updateModInfo(modInfoView, enabledMods[selectedItem.originalIndex], false);
+            else if (selectedItem.type == "funkin")
+                updateFunkinInfo(modInfoView);
         }
         modDirBtn.onMouseOver = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
@@ -319,6 +328,18 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
 
+        list.dataSource.add({
+            originalIndex: -1,
+            type: "funkin",
+            modId: "Funkin",
+            tagContainer: { backgroundColor: "#F7339A", borderColor: "#FFFFFF", borderSize: 1.5 },
+            tag: { text: "V-Slice" },
+            icon: { resource: FlxImageFrame.fromImage(BitmapData.fromFile(Assets.getPath("images/modmenu/funkin_icon.png"))).frame, opacity: 1 },
+            text: { text: "Friday Night Funkin'", styleNames: "type-enabled" },
+            summary: { text: "The base funkin' game." },
+            enableSwitch: { disabled: true, opacity: 0 }
+        });
+
         for (i in 0...enabledMods.length) {
             var mod = enabledMods[i];
             var iconResource = FlxImageFrame.fromImage(getModIcon(mod)).frame;
@@ -336,7 +357,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 modId: mod.id,
                 tagContainer: tagCont,
                 tag: { text: tagArray[0] ?? "" },
-                iconResource: iconResource,
                 icon: { resource: iconResource, opacity: 1 },
                 text: { text: mod.title, styleNames: "type-enabled" },
                 summary: { text: mod.metadata.get("summary") ?? "" },
@@ -362,7 +382,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 type: "disabled",
                 modId: modId,
                 tag: { text: "Disabled" },
-                iconResource: iconResource,
                 icon: { resource: iconResource, opacity: 0.3 },
                 text: { text: modId, styleNames: "type-disabled" },
                 summary: { text: "" },
@@ -388,8 +407,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         updateButton(issuesBtn, !disabled ? modMeta.metadata.get("issues") : modMeta.metadata?.issues);
 
         modDirBtn.disabled = false;
-        modDirBtn.userData = modMeta.id;
+        modDirBtn.userData = "mods/" + modMeta.id;
 
+        configBtn.userData = "";
         configuration = disabled ? null : modMeta.metadata.get("config");
         if (!disabled && configuration == null && FileUtilSandboxed.fileExists("config/" + modMeta.id + ".json")) configuration = "[json => config/" + modMeta.id + "]";
         configBtn.disabled = (configuration == null);
@@ -402,7 +422,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             addSpacer();
         }
 
-        // Description
+        // License
         if (modMeta.license != null && modMeta.license != "") {
             addLabel("License:");
             addLabel(" " + modMeta.license);
@@ -453,7 +473,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             }
         }
 
-        // Contributors
+        // Credits
         if (modMeta.contributors != null && modMeta.contributors.length > 0) {
             addLabel("Credits:");
 
@@ -477,6 +497,44 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Fallback
         if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
+    }
+
+    function updateFunkinInfo(infoView:ScrollView) {
+        cachedMeta = null;
+
+        iconSprite.value = FlxImageFrame.fromImage(BitmapData.fromFile(Assets.getPath("images/modmenu/funkin_icon.png"))).frame;
+        iconSprite.visible = true;
+
+        modTitle.text = "Friday Night Funkin'";
+
+        modInfo.text = Constants.VERSION;
+        updateButton(homepageBtn, "https://ninja-muffin24.itch.io/funkin");
+        updateButton(issuesBtn, "https://github.com/FunkinCrew/Funkin/issues");
+
+        modDirBtn.disabled = false;
+        modDirBtn.userData = "";
+
+        configBtn.userData = "funkin";
+        configBtn.disabled = false;
+
+        modInfoContainer.removeAllComponents();
+
+        // Description
+        addLabel("The base game.");
+        addSpacer();
+
+        // License
+        addLabel("License:");
+        addLabel(" " + "Apache 2.0");
+        addSpacer();
+
+        // Credits
+        addLabel("Credits:");
+        var link = new Link();
+        link.styleNames = "modInfoLink";
+        link.text = " " + "View Credits";
+        link.onClick = (event:MouseEvent) -> FlxG.switchState(new CreditsState());
+        modInfoContainer.addComponent(link);
     }
 
     function toggleMod(modMeta:ModMetadata, enable:Bool, disabled:Bool) {
