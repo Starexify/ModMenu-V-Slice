@@ -285,7 +285,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modsListView.onChange = (event:UIEvent) -> {
             var selectedItem = modsListView.selectedItem;
             if (selectedItem.type == "disabled")
-                updateModInfo(modInfoView, FileUtilSandboxed.readJSONFromPath("mods/" + disabledMods[selectedItem.originalIndex] + "/_polymod_meta_disabled.json"), true);
+                updateModInfo(modInfoView, disabledMods[selectedItem.originalIndex], true);
             else if (selectedItem.type == "enabled")
                 updateModInfo(modInfoView, enabledMods[selectedItem.originalIndex], false);
             else if (selectedItem.type == "funkin")
@@ -336,7 +336,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             modId: "Funkin",
             tagContainer: { backgroundColor: "#F7339A", borderColor: "#FFFFFF", borderSize: 1.5 },
             tag: { text: "V-Slice" },
-            icon: { resource: FlxImageFrame.fromImage(BitmapData.fromFile(Assets.getPath("images/modmenu/funkin_icon.png"))).frame, opacity: 1 },
+            icon: { resource: Paths.image("modmenu/funkin_icon"), opacity: 1 },
             text: { text: "Friday Night Funkin'", styleNames: "type-enabled" },
             summary: { text: "The base funkin' game." },
             enableSwitch: { disabled: true, opacity: 0 }
@@ -344,7 +344,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         for (i in 0...enabledMods.length) {
             var mod = enabledMods[i];
-            var iconResource = FlxImageFrame.fromImage(getModIcon(mod)).frame;
+            var iconResource = getModIcon(mod);
             var tagArray = [];
             if (mod.metadata.exists("tag")) {
                 var tagProp = mod.metadata.get("tag");
@@ -370,14 +370,13 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         for (i in 0...disabledMods.length) {
             var modId = disabledMods[i];
-            var iconBitmap:BitmapData;
+            var iconBitmap;
             if (FileUtilSandboxed.fileExists("mods/" + modId + "/_polymod_icon.png"))
-                iconBitmap = BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png");
-            else {
-                var defaultPath = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
-                iconBitmap = Assets.getBitmapData(defaultPath);
-            }
-            var iconResource = FlxImageFrame.fromImage(iconBitmap).frame;
+                iconBitmap = FlxImageFrame.fromImage(BitmapData.fromFile("mods/" + modId + "/_polymod_icon.png")).frame;
+            else
+                iconBitmap = FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
+
+            var iconResource = iconBitmap;
 
             list.dataSource.add({
                 originalIndex: i,
@@ -395,10 +394,12 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     }
 
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata, disabled:Bool) {
+        var modid = modMeta;
+        if (disabled) modMeta = FileUtilSandboxed.readJSONFromPath("mods/" + modMeta + "/_polymod_meta_disabled.json");
         if (cachedMeta == modMeta) return;
         cachedMeta = modMeta;
 
-        iconSprite.value = FlxImageFrame.fromImage(getModIcon(modMeta, disabled)).frame;
+        iconSprite.value = getModIcon(modid, disabled);
         iconSprite.visible = true;
 
         modTitle.text = modMeta.title;
@@ -570,14 +571,14 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modInfoContainer.addComponent(spacer);
     }
 
-    function getModIcon(mod:ModMetadata, disabled:Bool = false):BitmapData {
+    function getModIcon(mod:ModMetadata, disabled:Bool = false) {
         if (!disabled && mod.icon != null)
-            return BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon));
+            return FlxImageFrame.fromImage(BitmapData.fromBytes(ByteArrayData.fromBytes(mod.icon))).frame;
 
-        if (disabled && FileUtilSandboxed.fileExists("mods/" + mod.title + "/_polymod_icon.png"))
-            return BitmapData.fromFile("mods/" + mod.title + "/_polymod_icon.png");
+        if (disabled && FileUtilSandboxed.fileExists("mods/" + mod + "/_polymod_icon.png"))
+            return FlxImageFrame.fromImage(BitmapData.fromFile("mods/" + mod + "/_polymod_icon.png")).frame;
 
-        return Assets.getBitmapData(FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon"));
+        return FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
     }
     /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {

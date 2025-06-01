@@ -1,22 +1,27 @@
+import funkin.graphics.FunkinSprite;
 import funkin.modding.PolymodHandler;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
+import funkin.play.PauseSubState;
 import funkin.ui.mainmenu.MainMenuState;
 import funkin.util.Constants;
+import funkin.util.ReflectUtil;
 
 import flixel.FlxG;
-import funkin.graphics.FunkinSprite;
-import funkin.util.ReflectUtil;
-import funkin.play.PauseSubState;
 
 class ModMenuMain extends ScriptedModule {
 
     var config:JsonConfig;
 
     var configValues:Dynamic = {
-        string: "Funkin",
-        integer: 69
+        playerName: "Boyfriend",
+        difficulty: "Normal",
+        audio: {
+            music: 0.8,
+            sfx: 0.9
+        },
+        unlockedSongs: ["Tutorial", "Bopeebo"]
     };
 
     function new() {
@@ -27,6 +32,8 @@ class ModMenuMain extends ScriptedModule {
 
     override function onCreate(event:ScriptEvent) {
         FunkinSprite.cacheTexture(Paths.image("modmenu/default_icon"));
+        FunkinSprite.cacheTexture(Paths.image("modmenu/funkin_icon"));
+        FunkinSprite.cacheTexture(Paths.image("modmenu/ui/reset"));
     }
 
     override function onStateChangeEnd(event:StateChangeScriptEvent) {

@@ -1,9 +1,5 @@
 <box>
     <style>
-        #configView {
-            background-color: #000000;
-            background-opacity: 0.2;
-        }
         .configTitle {
             width: 100%;
             text-align: center;
@@ -11,6 +7,45 @@
             font-name: "Inconsolata";
             color: #FFFFFF;
             filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
+        }
+        .intContainer {
+            background-color: #000000;
+            background-opacity: 0.3;
+            padding: 7px;
+            border-radius: 5px;
+            border:2px solid #444444;
+        }
+        .configLabel {
+            text-align: right;
+            font-name: "Inconsolata";
+            font-size: 17px;
+            vertical-align: center;
+            color: #EEEEEE;
+            filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
+        }
+        .resetBtn {
+            icon: "images/modmenu/ui/reset.png";
+            width: 32px;
+            height: 32px;
+            border-radius: 0px;
+        }
+        .resetBtn:hover {
+            border-radius: 5px;
+        }
+        .intStepper {
+            width: 100;
+            height: 100%;
+            font-name: "Inconsolata";
+            font-size: 17px;
+            font-align: center;
+            background-opacity: 0.7;
+        }
+        #configView {
+            background-color: #000000;
+            background-opacity: 0.2;
+            border-radius: 0px;
+            width: 101%;
+            left: -2px
         }
         #configButton {
             width: 257px;

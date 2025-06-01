@@ -1,5 +1,4 @@
 import funkin.modding.module.ScriptedModule;
-
 import haxe.ds.StringMap;
 import StringTools;
 
