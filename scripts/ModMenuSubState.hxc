@@ -44,6 +44,10 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
+import haxe.ui.components.DropDown;
+import haxe.ui.components.CheckBox;
+import haxe.ui.components.OptionBox;
+import haxe.ui.components.Rule;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -68,11 +72,13 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var menuTitle:Label = new Label();
     var modTitle:Label = new Label();
     var modSearch:TextField = new TextField();
+    var filterDD:DropDown = new DropDown();
     var modInfo:Label = new Label();
     var iconSprite:Image = new Image();
     var modsListView:ListView = new ListView();
     var modInfoView:ScrollView = new ScrollView();
     var itemRenderer:ItemRenderer = new ItemRenderer();
+    var filterRenderer:ItemRenderer = new ItemRenderer();
     var modInfoContainer:VBox = new VBox();
 
     var buttons:Array<Button> = [];
@@ -84,6 +90,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var configBtn:Button;
 
     var folderIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/folder-icon");
+    var filterIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/filter-icon");
     var configIcon:FunkinSprite = FunkinSprite.create(0, 0, "modmenu/ui/config-icon");
 
     var prevPersUpd:Bool;
@@ -180,8 +187,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         menuTitle.left = modsListView.left + modsListView.width * 0.45;
         add(menuTitle);
 
-        // Setup search field
-        modSearch.id = "modSearch";
+        // Setup search
+        modSearch.addClass("modSearch");
         modSearch.camera = modMenuCam;
         modSearch.placeholder = "Search...";
         modSearch.width = modsListView.width * 0.8;
@@ -189,6 +196,37 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modSearch.left = modsListView.left + modsListView.width * 0.5 - modSearch.width * 0.5;
         modSearch.top = menuTitle.top + modSearch.height + 15;
         add(modSearch);
+
+        filterDD.camera = modMenuCam;
+        filterDD.addClass("filterDrop");
+        filterDD.left = modSearch.left + modSearch.width + 5;
+        filterDD.top = modSearch.top;
+        filterDD.dropdownWidth = 215;
+
+        var filterContainer = new HBox();
+        filterContainer.padding = 1;
+        filterContainer.horizontalSpacing = 10;
+
+        var alphabetContainer = new VBox();
+        alphabetContainer.verticalSpacing = 10;
+        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionboxa", componentGroup: "alpha" ,text: "A-Z", selected: true }));
+        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionboxz", componentGroup: "alpha", text: "Z-A" }));
+        filterContainer.addComponent(alphabetContainer);
+
+        var betaContainer = new VBox();
+        betaContainer.verticalSpacing = 10;
+        betaContainer.addComponent(createComponent("CheckBox", { id: "checkbox", text: "Show Enabled", selected: true }));
+        betaContainer.addComponent(createComponent("CheckBox", { id: "checkbox", text: "Show Disabled", selected: true }));
+        filterContainer.addComponent(betaContainer);
+
+        filterRenderer.addComponent(filterContainer);
+        filterDD.itemRenderer = filterRenderer;
+
+        add(filterDD);
+
+        populateFilter(filterDD);
+
+        filterDD.add(filterIcon);
 
         // Setup size text
         modsTxt.addClass("modSizeText");
@@ -206,7 +244,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
         add(modsBox);
 
-        // Setup icon
+        // Setup Mod Info
         iconSprite.camera = modMenuCam;
         iconSprite.addClass("modIcon");
         iconSprite.left = modInfoView.left;
@@ -214,7 +252,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         iconSprite.visible = false;
         add(iconSprite);
 
-        // Setup mod title and info
         modTitle.addClass("titleLabel");
         modTitle.camera = modMenuCam;
         modTitle.left = iconSprite.left + 110;
@@ -227,7 +264,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modInfo.top = modTitle.top + 25;
         add(modInfo);
 
-        // Setup mod info container
         modInfoContainer.styleNames = "modInfoContainer";
         modInfoView.addComponent(modInfoContainer);
     }
@@ -295,6 +331,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modDirBtn.onMouseOut = (event:MouseEvent) -> folderIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
         configBtn.onMouseOver = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
         configBtn.onMouseOut = (event:MouseEvent) -> configIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
+        filterDD.onMouseOver = (event:MouseEvent) -> filterIcon.setColorTransform(1, 1, 1, 1, 255, 255, 255);
+        filterDD.onMouseOut = (event:MouseEvent) -> filterIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
         modSearch.onDblClick = (event:MouseEvent) -> modSearch.text = "";
         modSearch.onChange = (event:UIEvent) -> {
             var searchText = event.target.text;
@@ -315,17 +353,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     }
 
     // Helper methods
-    function createComponent(type:String, props:Dynamic):Dynamic {
-        var comp = switch (type) {
-            case "Image": new Image();
-            case "Label": new Label();
-            case "Switch": new Switch();
-            default: null;
-        }
-        for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
-        return comp;
-    }
-
     function populateModList(list:ListView) {
         if (list.dataSource == null) list.dataSource = new ArrayDataSource();
         list.dataSource.clear();
@@ -391,6 +418,12 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 }
             });
         }
+    }
+
+    function populateFilter(dropdown:DropDown) {
+        dropdown.dataSource.clear();
+
+        dropdown.dataSource.add({});
     }
 
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata, disabled:Bool) {
@@ -580,6 +613,19 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         return FlxG.random.bool(5) ? "flixel/images/logo/default.png" : Paths.image("modmenu/default_icon");
     }
+
+    function createComponent(type:String, props:Dynamic):Dynamic {
+        var comp = switch (type) {
+            case "Image": new Image();
+            case "Label": new Label();
+            case "Switch": new Switch();
+            case "OptionBox": new OptionBox();
+            case "CheckBox": new CheckBox();
+            default: null;
+        }
+        for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
+        return comp;
+    }
     /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {
         if (dependencies.dependencies != null) {
@@ -649,12 +695,14 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     }
 
     // Switch stuff
-    override public function switchSubState(substate:FlxSubState):Void {
+    override public function switchSubState(substate:FlxSubState) {
         modsListView.onChange = null;
         modDirBtn.onMouseOver = null;
         modDirBtn.onMouseOut = null;
         configBtn.onMouseOver = null;
         configBtn.onMouseOut = null;
+        filterDD.onMouseOver = null;
+        filterDD.onMouseOut = null;
         modSearch.onDblClick = null;
         modSearch.onChange = null;
 

@@ -21,6 +21,24 @@
             font-size: 20px;
             filter: drop-shadow(2, 45, #333333, 1, 6, 6, 3, 3);
         }
+        .modSearch {
+            font-size: 17px;
+            font-name: "Inconsolata";
+            background-opacity: 0.7;
+        }
+        .modSearch:active {
+            background-opacity: 0.9;
+        }
+        .filterDrop {
+            icon: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 0px;
+            font-size: 17px;
+        }
+        .filterDrop:hover {
+            border-radius: 5px;
+        }
         .infoLabel {
             font-size: 20px;
             color: #AAAAAA;
@@ -122,24 +140,6 @@
             horizontal-align: right;
             vertical-align: center;
         }
-        #modItemRenderer #enableSwitch @keyframes switchAnimateSelectedPill {
-            0% {
-                pos: 0;
-                background-color: $default-background-color;
-            }
-            100% {
-                pos: 100;
-                background-color: #1f8222;
-            }
-        }
-        #modSearch {
-            font-size: 17px;
-            font-name: "Inconsolata";
-            background-opacity: 0.7;
-        }
-        #modSearch:active {
-            background-opacity: 1;
-        }
         #menuButton {
             width: 257px;
             height: 35px;
@@ -156,6 +156,16 @@
         }
         #sqButton:hover {
             border-radius: 5px;
+        }
+        #modItemRenderer #enableSwitch @keyframes switchAnimateSelectedPill {
+            0% {
+                pos: 0;
+                background-color: $default-background-color;
+            }
+            100% {
+                pos: 100;
+                background-color: #1f8222;
+            }
         }
     </style>
 
