@@ -9,13 +9,20 @@ import openfl.filters.ShaderFilter;
 
 import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
+import haxe.ui.components.Label;
+import haxe.ui.containers.menus.MenuBar;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
     var jsonCfg:JsonConfig;
 
     var configValues:StringMap<String>;
-    var configCam:FunkinCamera;
+    var configCam:FunkinCamera = new FunkinCamera("configCam");
+
+    var topBar:MenuBar = new MenuBar();
+    var title:Label = new Label();
+
+    var prevPersUpd:Bool;
 
     function new(config:String) {
         super();
@@ -24,7 +31,12 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
     override function create() {
         super.create();
+
+        prevPersUpd = FlxG.state.persistentUpdate;
+        FlxG.state.persistentUpdate = false;
+
         if (!configValues.keys().hasNext()) trace("Mod config is empty, please add one !");
+
         for (cfg in configValues.keyValueIterator()) {
             switch (cfg.key) {
                 case "json": handleJsonConfig(cfg.value);
@@ -40,13 +52,12 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
     override function update(elapsed:Float) {
         super.update(elapsed);
 
-        if (controls.BACK) { close(); }
+        if (controls.BACK) switchSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
     }
 
     // Setup methods
     function setupCamera() {
         FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
-        configCam = new FunkinCamera("configCam");
         configCam.bgColor = 0x5F000000;
         FlxG.cameras.add(configCam, false);
     }
@@ -54,6 +65,10 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
     function setupUI() {
         var configMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/config-ui"));
         if (configMenuUI == null) return;
+
+        title.camera = configCam;
+        title.text = "Config Screen";
+        add(title);
     }
 
     // Handler methods
@@ -78,6 +93,7 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
     function cleanup() {
         if (configCam != null) FlxG.cameras.remove(configCam);
+        FlxG.state.persistentUpdate = prevPersUpd;
         if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
     }
 }

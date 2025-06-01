@@ -68,13 +68,14 @@
         }
         #modListView .listview-contents > .itemrenderer:selected {
             border-radius: 10px;
-            border:2px solid #444444;
+            border:2px solid #555555;
         }
         #modItemRenderer {
             width: 100%;
             background-opacity: 0.1;
         }
         #modItemRenderer:selected {
+            background-size: 100%;
             background-opacity: 0.8;
             background-color: #111111;
         }
@@ -88,9 +89,9 @@
             vertical-align: center;
         }
         #titleContainer {
+            width: 100%;
             vertical-align: top;
             padding-top: 5px;
-
         }
         #tagContainer {
             border-radius: 6px;

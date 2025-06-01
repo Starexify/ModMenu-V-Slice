@@ -4,6 +4,9 @@ import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.input.Cursor;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.PolymodHandler;
+import funkin.ui.credits.CreditsState;
+import funkin.ui.options.OptionsState;
+import funkin.util.Constants;
 import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
 import funkin.util.SerializerUtil;
@@ -41,9 +44,7 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
-import funkin.util.Constants;
-import funkin.ui.options.OptionsState;
-import funkin.ui.credits.CreditsState;
+import haxe.ui.events.ItemEvent;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -146,7 +147,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         var titleContainer = new HBox();
         titleContainer.id = "titleContainer";
-        titleContainer.percentWidth = 100;
         titleContainer.addComponent(createComponent("Label", { id: "text" }));
         textContainer.addComponent(titleContainer);
 
@@ -238,7 +238,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: true,
                 onClick: () -> {
                     if (configBtn.userData == "funkin") FlxG.switchState(new OptionsState());
-                    else this.openSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration));
+                    else {
+                        this.switchSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration));
+                    }
                 }
             },
             {name: "homepageBtn", id: "menuButton", text: "Homepage", left: iconSprite.left + 10, top: modInfoView.top - 50, disabled: true,
@@ -643,16 +645,17 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         return modsListView.dataSource.size;
     }
 
-    // Other
-    override function onOpenSubStateComplete(targetState:FlxSubState):Void {
-        super.onOpenSubStateComplete(targetState);
-        modMenuCam.visible = false;
-    }
+    // Switch stuff
+    override public function switchSubState(substate:FlxSubState):Void {
+        modsListView.onChange = null;
+        modDirBtn.onMouseOver = null;
+        modDirBtn.onMouseOut = null;
+        configBtn.onMouseOver = null;
+        configBtn.onMouseOut = null;
+        modSearch.onDblClick = null;
+        modSearch.onChange = null;
 
-    override function onCloseSubStateComplete(targetState:FlxSubState):Void {
-        super.onCloseSubStateComplete(targetState);
-        FlxG.state.camera.filters = [new ShaderFilter(new GaussianBlurShader(1))];
-        modMenuCam.visible = true;
+        super.switchSubState(substate);
     }
 
     // Cleanup stuff
