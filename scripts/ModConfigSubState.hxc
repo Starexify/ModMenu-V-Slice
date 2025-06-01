@@ -9,24 +9,32 @@ import openfl.filters.ShaderFilter;
 
 import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
+import haxe.ui.components.Button;
 import haxe.ui.components.Label;
-import haxe.ui.containers.menus.MenuBar;
+import haxe.ui.containers.ScrollView;
+import haxe.ui.events.MouseEvent;
+import funkin.input.Cursor;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
     var jsonCfg:JsonConfig;
 
     var configValues:StringMap<String>;
+    var modid:String;
     var configCam:FunkinCamera = new FunkinCamera("configCam");
 
-    var topBar:MenuBar = new MenuBar();
-    var title:Label = new Label();
+    var configTitle:Label = new Label();
+    var configView:ScrollView = new ScrollView();
+
+    var buttons:Array<Button> = [];
+    var backButton:Button = new Button();
 
     var prevPersUpd:Bool;
 
-    function new(config:String) {
+    function new(config:Configuration) {
         super();
-        configValues = mapsTools.stringToStringMap(config);
+        configValues = mapsTools.stringToStringMap(config.configName);
+        modid = config.modid;
     }
 
     override function create() {
@@ -47,6 +55,8 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
         setupCamera();
         setupUI();
+
+        Cursor.show();
     }
 
     override function update(elapsed:Float) {
@@ -63,12 +73,30 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
     }
 
     function setupUI() {
-        var configMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/config-ui"));
+        var configMenuUI = RuntimeComponentBuilder.build(Paths.ui("mod-menu/config-ui"));
         if (configMenuUI == null) return;
+        configMenuUI.camera = configCam;
 
-        title.camera = configCam;
-        title.text = "Config Screen";
-        add(title);
+        configTitle.camera = configCam;
+        configTitle.addClass("configTitle");
+        configTitle.text = modid + " Config";
+        configTitle.top = 25;
+        add(configTitle);
+
+        configView.id = "configView";
+        configView.camera = configCam;
+        configView.percentWidth = 100;
+        configView.top = 70;
+        configView.percentHeight = 80;
+        add(configView);
+
+        backButton.id = "configButton";
+        backButton.camera = configCam;
+        backButton.text = "Exit Config";
+        backButton.top = configView.top + 600;
+        backButton.left = (FlxG.width - 257) * 0.5;
+        backButton.onClick = (event:MouseEvent) -> switchSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
+        add(backButton);
     }
 
     // Handler methods

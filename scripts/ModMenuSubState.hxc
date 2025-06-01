@@ -44,7 +44,6 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
-import haxe.ui.events.ItemEvent;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -57,7 +56,10 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
-    var configuration:String;
+    var configuration:Configuration = {
+        modid: "",
+        configName: ""
+    };
 
     var modsBox:HBox = new HBox();
     var modsTxt:Label = new Label();
@@ -125,7 +127,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     function setupUI() {
         var handlerWindow = RuntimeComponentBuilder.fromAsset(Paths.ui("base-style"));
         if (handlerWindow == null) return;
-        var mainMenuUI = RuntimeComponentBuilder.fromAsset(Paths.ui("mod-menu/menu-ui"));
+        var mainMenuUI = RuntimeComponentBuilder.build(Paths.ui("mod-menu/menu-ui"));
         if (mainMenuUI == null) return;
         mainMenuUI.camera = modMenuCam;
 
@@ -238,9 +240,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             {name: "configBtn", id: "sqButton", text: "", left: modInfoView.left + modInfoView.width - 116, top: modInfoView.top - 105, disabled: true,
                 onClick: () -> {
                     if (configBtn.userData == "funkin") FlxG.switchState(new OptionsState());
-                    else {
-                        this.switchSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration));
-                    }
+                    else this.switchSubState(ScriptedMusicBeatSubState.init("ModConfigSubState", configuration));
                 }
             },
             {name: "homepageBtn", id: "menuButton", text: "Homepage", left: iconSprite.left + 10, top: modInfoView.top - 50, disabled: true,
@@ -412,9 +412,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modDirBtn.userData = "mods/" + modMeta.id;
 
         configBtn.userData = "";
-        configuration = disabled ? null : modMeta.metadata.get("config");
-        if (!disabled && configuration == null && FileUtilSandboxed.fileExists("config/" + modMeta.id + ".json")) configuration = "[json => config/" + modMeta.id + "]";
-        configBtn.disabled = (configuration == null);
+        configuration.configName = disabled ? null : modMeta.metadata.get("config");
+        if (!disabled && configuration.configName == null && FileUtilSandboxed.fileExists("config/" + modMeta.id + ".json")) configuration.configName = "[json => config/" + modMeta.id + "]";
+        configBtn.disabled = (configuration.configName == null);
+
+        configuration.modid = disabled ? modMeta : modMeta.id;
 
         modInfoContainer.removeAllComponents();
 
@@ -610,7 +612,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     function updateModsSizeText(searchFilter:String = "") {
         if (searchFilter == "") {
             modsTxt.text = "Showing " + totalMods + " mods";
-            if (disabledMods.length > 0) disModsTxt.text = "(+" + disabledMods.length + " disabled)";
+            if (disabledMods.length > 0) disModsTxt.text = " (+" + disabledMods.length + " disabled)";
         } else {
             // Count filtered disabled mods for display
             var filteredDisabledCount = 0;
@@ -621,7 +623,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             }
 
             modsTxt.text = "Showing " + getFilteredModCount(searchFilter) + " of " + totalMods + " mods";
-            if (filteredDisabledCount > 0) disModsTxt.text = "(+" + filteredDisabledCount + " disabled)";
+            if (filteredDisabledCount > 0) disModsTxt.text = " (+" + filteredDisabledCount + " disabled)";
         }
     }
 
@@ -689,4 +691,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         PolymodHandler.forceReloadAssets();
     }
+}
+
+typedef Configuration = {
+    modid:String,
+    configName:String
 }
