@@ -26,9 +26,12 @@ import openfl.utils.ByteArrayData;
 import haxe.ds.StringMap;
 import haxe.ui.RuntimeComponentBuilder;
 import haxe.ui.components.Button;
+import haxe.ui.components.CheckBox;
+import haxe.ui.components.DropDown;
 import haxe.ui.components.Image;
 import haxe.ui.components.Label;
 import haxe.ui.components.Link;
+import haxe.ui.components.OptionBox;
 import haxe.ui.components.Spacer;
 import haxe.ui.components.Switch;
 import haxe.ui.components.TextField;
@@ -44,10 +47,6 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
-import haxe.ui.components.DropDown;
-import haxe.ui.components.CheckBox;
-import haxe.ui.components.OptionBox;
-import haxe.ui.components.Rule;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -55,15 +54,13 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
     var totalMods:Int;
+    var originalData:Any;
     var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
-    var configuration:Configuration = {
-        modid: "",
-        configName: ""
-    };
+    var configuration:Configuration = { modid: "", configName: "" };
 
     var modsBox:HBox = new HBox();
     var modsTxt:Label = new Label();
@@ -201,7 +198,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         filterDD.addClass("filterDrop");
         filterDD.left = modSearch.left + modSearch.width + 5;
         filterDD.top = modSearch.top;
-        filterDD.dropdownWidth = 215;
+        filterDD.dropdownWidth = 225;
 
         var filterContainer = new HBox();
         filterContainer.padding = 1;
@@ -209,8 +206,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         var alphabetContainer = new VBox();
         alphabetContainer.verticalSpacing = 10;
-        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionboxa", componentGroup: "alpha" ,text: "A-Z", selected: true }));
-        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionboxz", componentGroup: "alpha", text: "Z-A" }));
+        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionnone", componentGroup: "alpha", text: "None", selected: true }));
+        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optiona", componentGroup: "alpha", text: "A-Z" }));
+        alphabetContainer.addComponent(createComponent("OptionBox", { id: "optionz", componentGroup: "alpha", text: "Z-A" }));
         filterContainer.addComponent(alphabetContainer);
 
         var betaContainer = new VBox();
@@ -418,12 +416,24 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 }
             });
         }
+
+        originalData = list.dataSource.data.copy();
     }
 
     function populateFilter(dropdown:DropDown) {
         dropdown.dataSource.clear();
 
-        dropdown.dataSource.add({});
+        dropdown.dataSource.add({
+            optionnone: {
+                onClick: (event:MouseEvent) -> {
+                    modsListView.dataSource._currentSortFn = null;
+                    modsListView.dataSource._currentSortDirection = null;
+                    modsListView.dataSource.data = originalData.copy();
+                }
+            },
+            optiona: { onClick: (event:MouseEvent) -> modsListView.dataSource.sort("modId", "asc") },
+            optionz: { onClick: (event:MouseEvent) -> modsListView.dataSource.sort("modId", "desc") }
+        });
     }
 
     function updateModInfo(infoView:ScrollView, modMeta:ModMetadata, disabled:Bool) {
@@ -456,15 +466,15 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         // Description
         if (modMeta.description != null && modMeta.description != "") {
-            addLabel(modMeta.description);
-            addSpacer();
+            modInfoContainer.addComponent(createComponent("Label", { text: modMeta.description, styleNames: "modInfo" }));
+            modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
         }
 
         // License
         if (modMeta.license != null && modMeta.license != "") {
-            addLabel("License:");
-            addLabel(" " + modMeta.license);
-            addSpacer();
+            modInfoContainer.addComponent(createComponent("Label", { text: "License:", styleNames: "modInfo" }));
+            modInfoContainer.addComponent(createComponent("Label", { text: " " + modMeta.license, styleNames: "modInfo" }));
+            modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
         }
 
         // Extra Links
@@ -472,69 +482,50 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             var extraLinks = modMeta.metadata?.extraLinks;
             if (modMeta?.metadata?.extraLinks != null) {
                 if (extraLinks != null && extraLinks != "") {
-                    addLabel("Extra Links:");
+                    modInfoContainer.addComponent(createComponent("Label", { text: "Extra Links:", styleNames: "modInfo" }));
 
                     for (fieldName in ReflectUtil.getFieldsOf(extraLinks)) {
                         var url = ReflectUtil.getProperty(extraLinks, fieldName);
-                        if (url != null && url != "") {
-                            var link = new Link();
-                            link.styleNames = "modInfoLink";
-                            link.text = " " + fieldName;
-                            link.onClick = (event:MouseEvent) -> WindowUtil.openURL(url);
-                            modInfoContainer.addComponent(link);
-                        }
+                        if (url != null && url != "")
+                            modInfoContainer.addComponent(createComponent("Link", { text: " " + fieldName, styleNames: "modInfoLink", onClick: (event:MouseEvent) -> WindowUtil.openURL(url) }));
                     }
 
-                    addSpacer();
+                    modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
                 }
             }
         } else {
             if (modMeta.metadata.exists("extraLinks")) {
                 var extraLinks = modMeta.metadata.get("extraLinks");
                 if (extraLinks != null && extraLinks != "") {
-                    addLabel("Extra Links:");
-
+                    modInfoContainer.addComponent(createComponent("Label", { text: "Extra Links:", styleNames: "modInfo" }));
                     // Convert string to map
                     var linksMap = mapsTools.stringToStringMap(extraLinks);
 
-                    // Use the map
-                    for (key in linksMap.keys()) {
-                        var link = new Link();
-                        link.styleNames = "modInfoLink";
-                        link.text = " " + key;
-                        link.onClick = (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key));
-                        modInfoContainer.addComponent(link);
-                    }
+                    for (key in linksMap.keys())
+                        modInfoContainer.addComponent(createComponent("Link", { text: " " + key, styleNames: "modInfoLink", onClick: (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key)) }));
 
-                    addSpacer();
+                    modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
                 }
             }
         }
 
         // Credits
         if (modMeta.contributors != null && modMeta.contributors.length > 0) {
-            addLabel("Credits:");
+            modInfoContainer.addComponent(createComponent("Label", { text: "Credits:", styleNames: "modInfo" }));
 
             for (contributor in modMeta.contributors) {
                 var nameText = " " + contributor.name;
-                if (contributor.role != null && contributor.role != "") {
-                    nameText += " - " + contributor.role;
-                }
+                if (contributor.role != null && contributor.role != "") nameText += " - " + contributor.role;
 
-                if (contributor.url != null && contributor.url != "") {
-                    var link = new Link();
-                    link.styleNames = "modInfoLink";
-                    link.text = nameText;
-                    link.onClick = (event:MouseEvent) -> WindowUtil.openURL(contributor.url);
-                    modInfoContainer.addComponent(link);
-                } else {
-                    addLabel(nameText);
-                }
+                if (contributor.url != null && contributor.url != "")
+                    modInfoContainer.addComponent(createComponent("Link", { text: nameText, styleNames: "modInfoLink", onClick: (event:MouseEvent) -> WindowUtil.openURL(contributor.url) }));
+                else
+                    modInfoContainer.addComponent(createComponent("Label", { text: nameText, styleNames: "modInfo" }));
             }
         }
 
         // Fallback
-        if (modInfoContainer.numComponents == 0) addLabel("No description available for this mod.");
+        if (modInfoContainer.numComponents == 0) modInfoContainer.addComponent(createComponent("Label", { text: "No description available for this mod.", styleNames: "modInfo" }));
     }
 
     function updateFunkinInfo(infoView:ScrollView) {
@@ -558,21 +549,17 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         modInfoContainer.removeAllComponents();
 
         // Description
-        addLabel("The base game.");
-        addSpacer();
+        modInfoContainer.addComponent(createComponent("Label", { text: "The base game.", styleNames: "modInfo" }));
+        modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
 
         // License
-        addLabel("License:");
-        addLabel(" " + "Apache 2.0");
-        addSpacer();
+        modInfoContainer.addComponent(createComponent("Label", { text: "License:", styleNames: "modInfo" }));
+        modInfoContainer.addComponent(createComponent("Label", { text: "Apache 2.0", styleNames: "modInfo" }));
+        modInfoContainer.addComponent(createComponent("Spacer", { height: 15 }));
 
         // Credits
-        addLabel("Credits:");
-        var link = new Link();
-        link.styleNames = "modInfoLink";
-        link.text = " " + "View Credits";
-        link.onClick = (event:MouseEvent) -> FlxG.switchState(new CreditsState());
-        modInfoContainer.addComponent(link);
+        modInfoContainer.addComponent(createComponent("Label", { text: "Credits:", styleNames: "modInfo" }));
+        modInfoContainer.addComponent(createComponent("Link", { text: " View Credits", styleNames: "modInfoLink", onClick: (event:MouseEvent) -> FlxG.switchState(new CreditsState()) }));
     }
 
     function toggleMod(modMeta:ModMetadata, enable:Bool, disabled:Bool) {
@@ -588,20 +575,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         } else {
             if (modMeta.dependencies != null) handleDependents(modId, removeState);
         }
-    }
-
-    function addLabel(text:String):Label {
-        var label = new Label();
-        label.styleNames = "modInfo";
-        label.text = text;
-        modInfoContainer.addComponent(label);
-        return label;
-    }
-
-    function addSpacer() {
-        var spacer = new Spacer();
-        spacer.height = 15;
-        modInfoContainer.addComponent(spacer);
     }
 
     function getModIcon(mod:ModMetadata, disabled:Bool = false) {
@@ -621,11 +594,15 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             case "Switch": new Switch();
             case "OptionBox": new OptionBox();
             case "CheckBox": new CheckBox();
+            case "Spacer": new Spacer();
+            case "Link": new Link();
             default: null;
         }
         for (field in ReflectUtil.getFieldsOf(props)) ReflectUtil.setProperty(comp, field, ReflectUtil.getAnonymousField(props, field));
+
         return comp;
     }
+
     /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {
         if (dependencies.dependencies != null) {
@@ -654,7 +631,6 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
             trace(mod.id);
         }
     }
-
     /// Update Methods
     function updateModsSizeText(searchFilter:String = "") {
         if (searchFilter == "") {
