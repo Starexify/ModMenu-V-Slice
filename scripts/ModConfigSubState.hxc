@@ -21,6 +21,7 @@ import haxe.ui.events.MouseEvent;
 import haxe.ui.events.UIEvent;
 import haxe.ui.containers.HBox;
 import funkin.util.macro.CompiledClassList;
+import haxe.ui.components.Switch;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -132,11 +133,13 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
             //trace("Path: " + pathString);
 
             if (TypeUtil.isInt(value)) {
-                //trace("  Type: INT, Value: " + value);
                 createIntegerControl(newPath, value);
+                //trace("  Type: INT, Value: " + value);
             } else if (TypeUtil.isBool(value)) {
+                createBoolControl(newPath, value);
                 //trace("  Type: BOOL, Value: " + value);
             } else if (TypeUtil.isFloat(value)) {
+                createFloatControl(newPath, value);
                 //trace("  Type: FLOAT, Value: " + value);
             } else if (TypeUtil.isString(value)) {
                 //trace("  Type: STRING, Value: " + value);
@@ -159,23 +162,37 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         input.addClass("intStepper");
         input.value = value;
         input.step = 1;
+        input.max = 2147483647;
+        input.min = -2147483648;
         input.onChange = (event:UIEvent) -> updateConfigValue(persPath, Std.int(input.value));
 
         container.addComponent(input);
-        addResetButton(container, path, value);
+        configView.addComponent(container);
     }
 
-    function addResetButton(container:HBox, path:Array<String>, originalValue:Dynamic) {
+    function createBoolControl(path, value) {
         var persPath = path;
-        var persOVal = originalValue;
-        var resetBtn = new Button();
-        resetBtn.addClass("resetBtn");
-        resetBtn.onClick = (event:MouseEvent) -> {
-            updateConfigValue(persPath, persOVal);
-            // You'd need to refresh the UI or update the specific control
-            regenerateUI();
-        }
-        container.addComponent(resetBtn);
+        var container = createControlContainer(path, "boolContainer");
+        var input:Switch = new Switch();
+        input.addClass("boolSwitch");
+        input.addClass("pill-switch");
+        input.value = value;
+        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value);
+
+        container.addComponent(input);
+        configView.addComponent(container);
+    }
+
+    function createFloatControl(path, value) {
+        var persPath = path;
+        var container = createControlContainer(path, "intContainer");
+        var input:NumberStepper = new NumberStepper();
+        input.addClass("floatStepper");
+        input.value = value;
+        input.step = 0.1;
+        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value);
+
+        container.addComponent(input);
         configView.addComponent(container);
     }
 
@@ -183,11 +200,6 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         jsonCfg.setDeepConfigValue(path, newValue);
 
         trace("Updated " + path.join(" → ") + " to: " + newValue);
-    }
-
-    function regenerateUI() {
-        configView.removeAllComponents();
-        exploreConfigStructure();
     }
 
     function createControlContainer(path:Array<String>, clsName:String):HBox {
