@@ -9,25 +9,34 @@ import funkin.util.Constants;
 import funkin.util.ReflectUtil;
 
 import flixel.FlxG;
+import funkin.save.Save;
 
 class ModMenuMain extends ScriptedModule {
 
-    var config:JsonConfig;
-
-    var configValues:Dynamic = {
-        playerName: "Boyfriend",
-        difficulty: "Normal",
-        audio: {
-            music: 0.8,
-            sfx: 0.9
+    var configValue:Dynamic = {
+        gameplay: {
+            controls: {
+                keyboard: {
+                    up: "W"
+                }
+            }
         },
-        unlockedSongs: ["Tutorial", "Bopeebo"]
-    };
+        audio: {
+            music: 0.001,
+            sfx: 0.7
+        },
+        unlockedSongs: [
+            "Tutorial",
+            "Bopeebo",
+            "Fresh"
+        ],
+        playerName: "Boyfriend",
+        level: -2147483648,
+        showHealth: true,
+    }
 
     function new() {
         super("ModMenuMain");
-
-        config = new JsonConfig("ModMenu", configValues);
     }
 
     override function onCreate(event:ScriptEvent) {

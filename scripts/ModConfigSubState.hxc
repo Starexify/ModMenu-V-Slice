@@ -2,6 +2,7 @@ import funkin.graphics.FunkinCamera;
 import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.input.Cursor;
 import funkin.modding.base.ScriptedMusicBeatSubState;
+import funkin.save.Save;
 import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
 
@@ -16,16 +17,17 @@ import haxe.ui.RuntimeComponentBuilder;
 import haxe.ui.components.Button;
 import haxe.ui.components.Label;
 import haxe.ui.components.NumberStepper;
+import haxe.ui.components.Switch;
+import haxe.ui.containers.HBox;
 import haxe.ui.containers.ScrollView;
 import haxe.ui.events.MouseEvent;
 import haxe.ui.events.UIEvent;
-import haxe.ui.containers.HBox;
-import funkin.util.macro.CompiledClassList;
-import haxe.ui.components.Switch;
+import haxe.ui.util.MathUtil;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
     var jsonCfg:JsonConfig;
+    var funkConfig:Dynamic;
 
     var configValues:StringMap<String>;
     var modid:String;
@@ -111,35 +113,43 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         jsonCfg = new JsonConfig();
         jsonCfg.setFilePath(path);
 
-        exploreConfigStructure();
+        exploreConfigStructure("json");
     }
 
     function handleFunkConfig(value:String) {
         trace("FUNKIN CONFIG DETECTED!");
+
+        funkConfig = Save.instance.modOptions.get(value);
+        if (funkConfig == null) {
+            trace("Funkin config not found for: " + value);
+            return;
+        }
+
+        exploreConfigStructure("funkin");
     }
 
     // Helper methods
-    function exploreConfigStructure(?path:Array<String>) {
+    function exploreConfigStructure(configType:String, ?path:Array<String>) {
         if (path == null) path = [];
-        var currentValue = (path.length == 0) ? jsonCfg.getConfig() : jsonCfg.getDeepConfigValue(path);
+        var currentValue = getCurrentValue(configType, path);
         if (currentValue == null) return;
 
         for (field in ReflectUtil.getFieldsOf(currentValue)) {
             var newPath = path.copy();
             newPath.push(field);
-            var value = jsonCfg.getDeepConfigValue(newPath);
+            var value = getCurrentValue(configType, newPath);
 
             var pathString = newPath.join(" → ");
             //trace("Path: " + pathString);
 
             if (TypeUtil.isInt(value)) {
-                createIntegerControl(newPath, value);
+                createIntegerControl(newPath, value, configType);
                 //trace("  Type: INT, Value: " + value);
             } else if (TypeUtil.isBool(value)) {
-                createBoolControl(newPath, value);
+                createBoolControl(newPath, value, configType);
                 //trace("  Type: BOOL, Value: " + value);
             } else if (TypeUtil.isFloat(value)) {
-                createFloatControl(newPath, value);
+                createFloatControl(newPath, value, configType);
                 //trace("  Type: FLOAT, Value: " + value);
             } else if (TypeUtil.isString(value)) {
                 //trace("  Type: STRING, Value: " + value);
@@ -150,13 +160,14 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
             } else if (ReflectUtil.isObject(value)) {
                 //trace("  Type: OBJECT");
                 // Recursively explore this object
-                exploreConfigStructure(newPath);
+                exploreConfigStructure(configType, newPath);
             }
         }
     }
 
-    function createIntegerControl(path, value) {
+    function createIntegerControl(path, value, configType:String) {
         var persPath = path;
+        var persConfigType = configType;
         var container = createControlContainer(path, "intContainer");
         var input:NumberStepper = new NumberStepper();
         input.addClass("intStepper");
@@ -164,42 +175,40 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         input.step = 1;
         input.max = 2147483647;
         input.min = -2147483648;
-        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, Std.int(input.value));
+        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, Std.int(input.value), persConfigType);
 
         container.addComponent(input);
         configView.addComponent(container);
     }
 
-    function createBoolControl(path, value) {
+    function createBoolControl(path, value, configType:String) {
         var persPath = path;
+        var persConfigType = configType;
         var container = createControlContainer(path, "boolContainer");
         var input:Switch = new Switch();
         input.addClass("boolSwitch");
         input.addClass("pill-switch");
         input.value = value;
-        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value);
+        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value, persConfigType);
 
         container.addComponent(input);
         configView.addComponent(container);
     }
 
-    function createFloatControl(path, value) {
+    function createFloatControl(path, value, configType:String) {
         var persPath = path;
+        var persConfigType = configType;
         var container = createControlContainer(path, "intContainer");
         var input:NumberStepper = new NumberStepper();
         input.addClass("floatStepper");
         input.value = value;
-        input.step = 0.1;
-        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value);
+        var precision = MathUtil.precision(value);
+        input.step = Math.pow(10, -precision);
+        input.precision = precision;
+        input.onChange = (event:UIEvent) -> updateConfigValue(persPath, input.value, persConfigType);
 
         container.addComponent(input);
         configView.addComponent(container);
-    }
-
-    function updateConfigValue(path:Array<String>, newValue:Dynamic) {
-        jsonCfg.setDeepConfigValue(path, newValue);
-
-        trace("Updated " + path.join(" → ") + " to: " + newValue);
     }
 
     function createControlContainer(path:Array<String>, clsName:String):HBox {
@@ -213,6 +222,43 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
         container.addComponent(fieldLabel);
 
         return container;
+    }
+
+    function updateConfigValue(path:Array<String>, newValue:Dynamic, configType:String) {
+        switch (configType) {
+            case "json": jsonCfg.setDeepConfigValue(path, newValue);
+            case "funkin": setDeepFunkValue(path, newValue);
+        }
+
+        trace("Updated " + path.join(" → ") + " to: " + newValue);
+    }
+
+    // Setter/Getter
+    function getCurrentValue(configType:String, path:Array<String>):Dynamic {
+        return switch (configType) {
+            case "json": (path.length == 0) ? jsonCfg.getConfig() : jsonCfg.getDeepConfigValue(path);
+            case "funkin": (path.length == 0) ? funkConfig : getDeepFunkValue(path);
+            default: null;
+        }
+    }
+
+    function getDeepFunkValue(path:Array<String>):Dynamic {
+        var current = funkConfig;
+        for (key in path) {
+            if (current == null || !ReflectUtil.hasField(current, key)) return null;
+            current = ReflectUtil.getField(current, key);
+        }
+        return current;
+    }
+
+    function setDeepFunkValue(path:Array<String>, value:Dynamic) {
+        var current = funkConfig;
+        for (i in 0...path.length - 1) {
+            var key = path[i];
+            if (current == null || !ReflectUtil.hasField(current, key)) return;
+            current = ReflectUtil.getField(current, key);
+        }
+        if (current != null) ReflectUtil.setField(current, path[path.length - 1], value);
     }
 
     // Cleanup stuff
