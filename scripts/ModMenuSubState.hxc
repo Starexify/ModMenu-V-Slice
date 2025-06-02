@@ -54,13 +54,16 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
     var totalMods:Int;
-    var originalData:Any;
     var modStates:StringMap<Bool> = new StringMap();
     var cachedMeta:ModMetadata;
     var modMenuCam:FunkinCamera = new FunkinCamera("modMenuCam");
+    var configuration:Configuration = { modid: "", configName: "" };
+
+    var originalData:Any;
     var currentSearchFilter:String = "";
     var lastFilteredCount:Int = -1;
-    var configuration:Configuration = { modid: "", configName: "" };
+    var showEnabled:Bool = true;
+    var showDisabled:Bool = true;
 
     var modsBox:HBox = new HBox();
     var modsTxt:Label = new Label();
@@ -102,7 +105,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         enabledMods = PolymodHandler.getAllMods();
         disabledMods = FileUtilSandboxed.readDir("mods").filter(id -> !PolymodHandler.loadedModIds.contains(id));
-        totalMods = enabledMods.length + disabledMods.length;
+        totalMods = enabledMods.length + disabledMods.length + 1;
 
         folderIcon.setGraphicSize(35, 35);
         configIcon.setGraphicSize(35, 35);
@@ -213,8 +216,8 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
 
         var betaContainer = new VBox();
         betaContainer.verticalSpacing = 10;
-        betaContainer.addComponent(createComponent("CheckBox", { id: "checkbox", text: "Show Enabled", selected: true }));
-        betaContainer.addComponent(createComponent("CheckBox", { id: "checkbox", text: "Show Disabled", selected: true }));
+        betaContainer.addComponent(createComponent("CheckBox", { id: "checkboxE", text: "Show Enabled", selected: showEnabled }));
+        betaContainer.addComponent(createComponent("CheckBox", { id: "checkboxD", text: "Show Disabled", selected: showDisabled }));
         filterContainer.addComponent(betaContainer);
 
         filterRenderer.addComponent(filterContainer);
@@ -333,20 +336,11 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         filterDD.onMouseOut = (event:MouseEvent) -> filterIcon.setColorTransform(1, 1, 1, 1, 0, 0, 0);
         modSearch.onDblClick = (event:MouseEvent) -> modSearch.text = "";
         modSearch.onChange = (event:UIEvent) -> {
-            var searchText = event.target.text;
-            var newFilteredCount = getFilteredModCount(searchText);
-            if (newFilteredCount != lastFilteredCount || searchText != currentSearchFilter) {
-                currentSearchFilter = searchText;
-                lastFilteredCount = newFilteredCount;
-
-                if (searchText == "") {
-                    modsListView.dataSource.clearFilter();
-                } else {
-                    applySearchFilter(modsListView, searchText);
-                }
+            if (modsListView.dataSource.size != lastFilteredCount || event.target.text != currentSearchFilter) {
+                currentSearchFilter = event.target.text;
+                lastFilteredCount = modsListView.dataSource.size;
+                applyTypeFilter();
             }
-
-            updateModsSizeText(searchText);
         }
     }
 
@@ -432,7 +426,9 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 }
             },
             optiona: { onClick: (event:MouseEvent) -> modsListView.dataSource.sort("modId", "asc") },
-            optionz: { onClick: (event:MouseEvent) -> modsListView.dataSource.sort("modId", "desc") }
+            optionz: { onClick: (event:MouseEvent) -> modsListView.dataSource.sort("modId", "desc") },
+            checkboxE: { onClick: (event:MouseEvent) -> { showEnabled = event.target.selected; applyTypeFilter(); }},
+            checkboxD: { onClick: (event:MouseEvent) -> { showDisabled = event.target.selected; applyTypeFilter(); } }
         });
     }
 
@@ -603,6 +599,29 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         return comp;
     }
 
+    function applyTypeFilter() {
+        if (showEnabled && showDisabled && currentSearchFilter == "") {
+            modsListView.dataSource.clearFilter();
+        } else {
+            modsListView.dataSource.filter((index:Int, item:Dynamic) -> {
+                var itemType:String = item.type;
+                var modId:String = item.modId;
+
+                // Type filter
+                var typeMatch = (showEnabled && (itemType == "enabled" || itemType == "funkin")) || (showDisabled && itemType == "disabled");
+
+                // Search filter
+                var searchMatch = (currentSearchFilter == "" ||
+                (modId != null && modId.toLowerCase().indexOf(currentSearchFilter.toLowerCase()) != -1));
+
+                return typeMatch && searchMatch;
+            });
+        }
+        modsListView.itemRenderer.resetFrame();
+
+        updateModsSizeText(currentSearchFilter);
+    }
+
     /// Handler methods
     function handleDependencies(dependencies, removeState:Bool) {
         if (dependencies.dependencies != null) {
@@ -632,42 +651,69 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         }
     }
     /// Update Methods
-    function updateModsSizeText(searchFilter:String = "") {
-        if (searchFilter == "") {
-            modsTxt.text = "Showing " + totalMods + " mods";
-            if (disabledMods.length > 0) disModsTxt.text = " (+" + disabledMods.length + " disabled)";
-        } else {
-            // Count filtered disabled mods for display
-            var filteredDisabledCount = 0;
-            for (modId in disabledMods) {
-                if (modId.toLowerCase().indexOf(searchFilter.toLowerCase()) != -1) {
-                    filteredDisabledCount++;
-                }
-            }
-
-            modsTxt.text = "Showing " + getFilteredModCount(searchFilter) + " of " + totalMods + " mods";
-            if (filteredDisabledCount > 0) disModsTxt.text = " (+" + filteredDisabledCount + " disabled)";
-        }
-    }
-
     function updateButton(btn:Button, url:String) {
         btn.disabled = (url == null || url == "");
         if (!btn.disabled) btn.userData = url;
     }
-    /// Filter methods
-    function applySearchFilter(list:ListView, searchFilter:String) {
-        var filter = searchFilter.toLowerCase();
-        list.dataSource.filter((index:Int, item:Dynamic) -> {
-            var modId:String = item.modId;
-            return modId != null && modId.toLowerCase().indexOf(filter) != -1;
-        });
-    }
 
-    function getFilteredModCount(searchFilter:String):Int {
-        if (searchFilter == "") return totalMods;
+    function updateModsSizeText(searchFilter:String = "") {
+        var displayedItems = modsListView.dataSource.data;
+        var totalDisplayed = modsListView.dataSource.size;
 
-        // Let the dataSource handle the filtering and just get its size
-        return modsListView.dataSource.size;
+        var enabledCount = 0;
+        var disabledCount = 0;
+        var funkinCount = 0;
+
+        for (item in displayedItems) {
+            switch (item.type) {
+                case "enabled": enabledCount++;
+                case "disabled": disabledCount++;
+                case "funkin": funkinCount++;
+            }
+        }
+
+        if (searchFilter == "") {
+            // No search filter - show based on type filter settings
+            if (showEnabled && showDisabled) {
+                modsTxt.text = "Showing " + totalMods + " mods";
+                if (disabledMods.length > 0) disModsTxt.text = " (+" + disabledMods.length + " disabled)";
+                else disModsTxt.text = "";
+            } else if (showEnabled && !showDisabled) {
+                modsTxt.text = "Showing " + (enabledMods.length + 1) + " mods"; // +1 for Funkin
+                disModsTxt.text = "";
+            } else if (!showEnabled && showDisabled) {
+                modsTxt.text = "Showing " + disabledMods.length + " disabled mods";
+                disModsTxt.text = "";
+            } else {
+                modsTxt.text = "Showing 0 mods";
+                disModsTxt.text = "";
+            }
+        } else {
+            // Search filter is active - show filtered counts respecting type filters
+            var totalPossible = 0;
+
+            // Calculate what the total possible matches could be based on type filters
+            if (showEnabled && showDisabled) totalPossible = totalMods;
+            else if (showEnabled && !showDisabled) totalPossible = enabledMods.length + 1;
+            else if (!showEnabled && showDisabled) totalPossible = disabledMods.length;
+            else totalPossible = 0;
+
+            // Show appropriate text based on what types are enabled
+            if (showEnabled && showDisabled) {
+                modsTxt.text = "Showing " + totalDisplayed + " of " + totalPossible + " mods";
+                if (disabledCount > 0) disModsTxt.text = " (+" + disabledCount + " disabled)";
+                else disModsTxt.text = "";
+            } else if (showEnabled && !showDisabled) {
+                modsTxt.text = "Showing " + totalDisplayed + " of " + totalPossible + " mods";
+                disModsTxt.text = "";
+            } else if (!showEnabled && showDisabled) {
+                modsTxt.text = "Showing " + totalDisplayed + " of " + totalPossible + " disabled mods";
+                disModsTxt.text = "";
+            } else {
+                modsTxt.text = "Showing 0 mods";
+                disModsTxt.text = "";
+            }
+        }
     }
 
     // Switch stuff
