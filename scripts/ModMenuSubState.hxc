@@ -47,6 +47,7 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
+import funkin.play.PlayState;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
     var mapsTools:MapsTools = new MapsTools();
@@ -748,6 +749,10 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
         if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
         FlxG.state.persistentUpdate = prevPersUpd;
         if (prevCursor == false) Cursor.hide();
+        if (PlayState.instance != null) {
+            if (FlxG.sound.music != null) FlxG.sound.music.resume();
+            if (PlayState.instance.vocals != null) PlayState.instance.vocals.resume();
+        }
     }
 
     function refreshModStates() {
