@@ -10,27 +10,44 @@ import funkin.util.Constants;
 import funkin.util.ReflectUtil;
 
 import flixel.FlxG;
+import funkin.save.Save;
+import funkin.play.PlayState;
+import funkin.ui.freeplay.FreeplayState;
 
 class ModMenuMain extends ScriptedModule {
-
     var config:JsonConfig;
 
-    var configValues:Dynamic = {
-        playerName: "Boyfriend",
-        difficulty: "Normal",
-        audio: {
-            music: 0.8,
-            sfx: 0.9
+    var configValue:Dynamic = {
+        gameplay: {
+            controls: {
+                keyboard: {
+                    up: "W"
+                }
+            }
         },
-        unlockedSongs: ["Tutorial", "Bopeebo"]
-    };
+        audio: {
+            music: 0.001,
+            sfx: 0.7
+        },
+        unlockedSongs: [
+            "Tutorial",
+            "Bopeebo",
+            "Fresh"
+        ],
+        playerName: "Boyfriend",
+        level: -2147483648,
+        showHealth: true,
+    }
 
     function new() {
         super("ModMenuMain");
 
-        // startsWith didn't work on my end for some reason even after importing
-        if (PolymodHandler.loadedModIds.contains("JsonConfig-0.6.x")) config = new JsonConfig("ModMenu", configValues);
-        else PolymodErrorHandler.showAlert("Dependency Missing for Mod Menu", "JsonConfg mod is not found or disabled.\nPlease download it.");
+        // Commented these config saves, so when needed for testing config stuff just uncomment it
+        //Funkin
+        //Save.instance.modOptions.set("modMenu", configValue);
+
+        //JSON Config
+        //config = new JsonConfig("modMenu", configValues);
     }
 
     override function onCreate(event:ScriptEvent) {
@@ -51,10 +68,17 @@ class ModMenuMain extends ScriptedModule {
         }
     }
 
+
     override function onUpdate(event:UpdateScriptEvent) {
-        if (!(FlxG.state is MainMenuState) && !(FlxG.state is PauseSubState)) return;
-        if (FlxG.keys.justPressed.TAB && ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name") != "ModMenuSubState") {
-            FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
+        if ((FlxG.state.subState is FreeplayState) || PlayState.instance != null) return;
+        if (FlxG.keys.justPressed.TAB) {
+            if (PlayState.instance != null) {
+                PlayState.instance.pauseMusic();
+            }
+            var className = ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name");
+            if (className != "ModMenuSubState" && className != "ModConfigSubState") {
+                FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
+            }
         }
     }
 }

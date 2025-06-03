@@ -10,6 +10,7 @@
   ],
   "metadata": {
     "config": {
+      "funkin": "modMenu",
       "json": "config/modMenu"
     },
     "tag": ["QoL", "#6a6dea", "#22228c"],

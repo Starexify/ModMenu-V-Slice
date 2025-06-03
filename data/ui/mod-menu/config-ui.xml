@@ -15,8 +15,28 @@
             border-radius: 5px;
             border:2px solid #444444;
         }
+        .intStepper {
+            height: 30px;
+            width: 142px;
+            font-name: "Inconsolata";
+            font-size: 17px;
+            background-opacity: 0.7;
+        }
+        .boolContainer {
+            background-color: #000000;
+            background-opacity: 0.3;
+            padding: 7px;
+            border-radius: 5px;
+            border:2px solid #444444;
+        }
+        .floatStepper {
+            height: 28px;
+            width: 142px;
+            font-name: "Inconsolata";
+            font-size: 17px;
+            background-opacity: 0.7;
+        }
         .configLabel {
-            text-align: right;
             font-name: "Inconsolata";
             font-size: 17px;
             vertical-align: center;
@@ -31,14 +51,6 @@
         }
         .resetBtn:hover {
             border-radius: 5px;
-        }
-        .intStepper {
-            width: 100;
-            height: 100%;
-            font-name: "Inconsolata";
-            font-size: 17px;
-            font-align: center;
-            background-opacity: 0.7;
         }
         #configView {
             background-color: #000000;
@@ -55,6 +67,16 @@
         }
         #configButton:hover {
             border-radius: 12px;
+        }
+        .boolSwitch @keyframes switchAnimateSelectedPill {
+            0% {
+                pos: 0;
+                background-color: $default-background-color;
+            }
+            100% {
+                pos: 100;
+                background-color: #1f8222;
+            }
         }
     </style>
 </vbox>
