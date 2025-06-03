@@ -1,6 +1,5 @@
 import funkin.graphics.FunkinSprite;
 import funkin.modding.PolymodHandler;
-import funkin.modding.PolymodErrorHandler;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
