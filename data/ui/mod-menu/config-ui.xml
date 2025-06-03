@@ -8,12 +8,22 @@
             color: #FFFFFF;
             filter: drop-shadow(1, 45, #000000, 1, 6, 6, 3, 3);
         }
-        .intContainer {
+        #configView {
             background-color: #000000;
-            background-opacity: 1;
+            background-opacity: 0.2;
+            border-radius: 0px;
+            width: 100%;
+        }
+        .intContainer, .boolContainer {
+            background-color:#000000;
+            background-opacity: 0.1;
             padding: 7px;
             border-radius: 5px;
             border:2px solid #444444;
+            width: 85%;
+            vertical-align: center;
+            horizontal-align: center;
+
         }
         .intStepper {
             height: 30px;
@@ -21,13 +31,8 @@
             font-name: "Inconsolata";
             font-size: 17px;
             background-opacity: 0.7;
-        }
-        .boolContainer {
-            background-color: #000000;
-            background-opacity: 0.3;
-            padding: 7px;
-            border-radius: 5px;
-            border:2px solid #444444;
+            vertical-align: right;
+            horizontal-align: right;
         }
         .floatStepper {
             height: 28px;
@@ -51,13 +56,6 @@
         }
         .resetBtn:hover {
             border-radius: 5px;
-        }
-        #configView {
-            background-color: #000000;
-            background-opacity: 0.2;
-            border-radius: 0px;
-            width: 101%;
-            left: -2px;
         }
         #configButton {
             width: 257px;
