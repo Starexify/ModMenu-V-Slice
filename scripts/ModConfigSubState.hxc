@@ -94,7 +94,7 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
         configView.id = "configView";
         configView.camera = configCam;
-        configView.percentWidth = 100;
+        configView.percentContentWidth = 100;
         configView.top = 70;
         configView.percentHeight = 80;
         add(configView);
