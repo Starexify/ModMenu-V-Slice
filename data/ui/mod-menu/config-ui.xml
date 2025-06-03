@@ -1,4 +1,4 @@
-<box>
+<vbox width="100%">
     <style>
         .configTitle {
             width: 100%;
@@ -10,7 +10,7 @@
         }
         .intContainer {
             background-color: #000000;
-            background-opacity: 0.3;
+            background-opacity: 1;
             padding: 7px;
             border-radius: 5px;
             border:2px solid #444444;
@@ -45,7 +45,7 @@
             background-opacity: 0.2;
             border-radius: 0px;
             width: 101%;
-            left: -2px
+            left: -2px;
         }
         #configButton {
             width: 257px;
@@ -57,4 +57,4 @@
             border-radius: 12px;
         }
     </style>
-</box>
+</vbox>

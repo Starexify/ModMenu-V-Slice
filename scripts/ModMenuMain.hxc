@@ -1,5 +1,6 @@
 import funkin.graphics.FunkinSprite;
 import funkin.modding.PolymodHandler;
+import funkin.modding.PolymodErrorHandler;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
@@ -27,7 +28,9 @@ class ModMenuMain extends ScriptedModule {
     function new() {
         super("ModMenuMain");
 
-        config = new JsonConfig("ModMenu", configValues);
+        // startsWith didn't work on my end for some reason even after importing
+        if (PolymodHandler.loadedModIds.contains("JsonConfig-0.6.x")) config = new JsonConfig("ModMenu", configValues);
+        else PolymodErrorHandler.showAlert("Dependency Missing for Mod Menu", "JsonConfg mod is not found or disabled.\nPlease download it.");
     }
 
     override function onCreate(event:ScriptEvent) {
