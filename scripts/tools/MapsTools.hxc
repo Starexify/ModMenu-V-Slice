@@ -1,9 +1,9 @@
-import funkin.modding.module.ScriptedModule;
+import funkin.modding.base.ScriptedObject;
 import haxe.ds.StringMap;
 import StringTools;
 
-class MapsTools extends ScriptedModule {
-    public function stringToStringMap(string:String):StringMap<String> {
+class MapsTools extends ScriptedObject {
+    public static function stringToStringMap(string:String):StringMap<String> {
         var map = new StringMap();
         var cleanString = string.substring(1, string.length - 1);
         var pairs = cleanString.split(",");

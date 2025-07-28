@@ -3,7 +3,6 @@ import funkin.modding.PolymodHandler;
 import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
-import funkin.play.PauseSubState;
 import funkin.ui.mainmenu.MainMenuState;
 import funkin.util.Constants;
 import funkin.util.ReflectUtil;
@@ -12,8 +11,12 @@ import flixel.FlxG;
 import funkin.save.Save;
 import funkin.play.PlayState;
 import funkin.ui.freeplay.FreeplayState;
+import funkin.modding.base.ScriptedMusicBeatState;
+import funkin.ui.title.TitleState;
+import funkin.InitState;
 
 class ModMenuMain extends ScriptedModule {
+    var initCheckState:Bool = false;
     var config:JsonConfig;
 
     var configValue:Dynamic = {
@@ -53,10 +56,17 @@ class ModMenuMain extends ScriptedModule {
         FunkinSprite.cacheTexture(Paths.image("modmenu/default_icon"));
         FunkinSprite.cacheTexture(Paths.image("modmenu/funkin_icon"));
         FunkinSprite.cacheTexture(Paths.image("modmenu/ui/reset"));
+
+        initCheckState = true;
     }
 
     override function onStateChangeEnd(event:StateChangeScriptEvent) {
-        if (Std.isOfType(event.targetState, MainMenuState)) {
+        /*if (initCheckState) {
+            trace(initCheckState);
+            FlxG.state.openSubState(ScriptedMusicBeatSubState.init("CheckState"));
+        }*/
+
+        if (event.targetState is MainMenuState) {
             var menuState:MainMenuState = event.targetState;
 
             var prevText = menuState.leftWatermarkText.text;
@@ -67,17 +77,18 @@ class ModMenuMain extends ScriptedModule {
         }
     }
 
+    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
+
+    }
 
     override function onUpdate(event:UpdateScriptEvent) {
         if ((FlxG.state.subState is FreeplayState) || PlayState.instance != null) return;
         if (FlxG.keys.justPressed.TAB) {
-            if (PlayState.instance != null) {
-                PlayState.instance.pauseMusic();
-            }
+            if (PlayState.instance != null) PlayState.instance.pauseMusic();
+
             var className = ReflectUtil.getAnonymousField(ReflectUtil.getAnonymousField(FlxG.state.subState?._asc, "_c"), "name");
-            if (className != "ModMenuSubState" && className != "ModConfigSubState") {
+            if (className != "ModMenuSubState" && className != "ModConfigSubState")
                 FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState"));
-            }
         }
     }
 }

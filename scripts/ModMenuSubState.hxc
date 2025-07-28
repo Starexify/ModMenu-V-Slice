@@ -2,8 +2,9 @@ import funkin.graphics.FunkinCamera;
 import funkin.graphics.FunkinSprite;
 import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.input.Cursor;
-import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.PolymodHandler;
+import funkin.play.PlayState;
+import funkin.ui.ScriptedMusicBeatSubState;
 import funkin.ui.credits.CreditsState;
 import funkin.ui.options.OptionsState;
 import funkin.util.Constants;
@@ -47,11 +48,8 @@ import haxe.ui.layouts.HorizontalLayout;
 
 import Array;
 import StringTools;
-import funkin.play.PlayState;
 
 class ModMenuSubState extends ScriptedMusicBeatSubState {
-    var mapsTools:MapsTools = new MapsTools();
-
     var enabledMods:Array<ModMetadata>;
     var disabledMods:Array<String> = [];
     var totalMods:Int;
@@ -496,7 +494,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
                 if (extraLinks != null && extraLinks != "") {
                     modInfoContainer.addComponent(createComponent("Label", { text: "Extra Links:", styleNames: "modInfo" }));
                     // Convert string to map
-                    var linksMap = mapsTools.stringToStringMap(extraLinks);
+                    var linksMap = MapsTools.stringToStringMap(extraLinks);
 
                     for (key in linksMap.keys())
                         modInfoContainer.addComponent(createComponent("Link", { text: " " + key, styleNames: "modInfoLink", onClick: (event:MouseEvent) -> WindowUtil.openURL(linksMap.get(key)) }));

@@ -1,0 +1,18 @@
+import funkin.modding.base.ScriptedMusicBeatSubState;
+import funkin.modding.base.ScriptedMusicBeatState;
+import funkin.graphics.FunkinSprite;
+import flixel.FlxG;
+
+class CheckState extends ScriptedMusicBeatSubState {
+
+    override function create() {
+        super.create();
+
+        FlxG.state.persistentUpdate = false;
+        FlxG.state.persistentDraw = false;
+
+        var image = FunkinSprite.create(100, 100, "modmenu/funkin_icon");
+        add(image);
+        trace("IN CHECK STATE");
+    }
+}

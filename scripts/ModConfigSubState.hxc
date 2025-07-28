@@ -1,8 +1,8 @@
 import funkin.graphics.FunkinCamera;
 import funkin.graphics.shaders.GaussianBlurShader;
 import funkin.input.Cursor;
-import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.save.Save;
+import funkin.ui.ScriptedMusicBeatSubState;
 import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
 
@@ -25,7 +25,6 @@ import haxe.ui.events.UIEvent;
 import haxe.ui.util.MathUtil;
 
 class ModConfigSubState extends ScriptedMusicBeatSubState {
-    var mapsTools:MapsTools = new MapsTools();
     var jsonCfg:JsonConfig;
     var funkConfig:Dynamic;
 
@@ -42,7 +41,7 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
     function new(config:Configuration) {
         super();
-        configValues = mapsTools.stringToStringMap(config.configName);
+        configValues = MapsTools.stringToStringMap(config.configName);
         modid = config.modid;
     }
 
@@ -94,7 +93,7 @@ class ModConfigSubState extends ScriptedMusicBeatSubState {
 
         configView.id = "configView";
         configView.camera = configCam;
-        configView.percentWidth = 100;
+        configView.percentWidth = configView.percentContentWidth = 100;
         configView.top = 70;
         configView.percentHeight = 80;
         add(configView);
