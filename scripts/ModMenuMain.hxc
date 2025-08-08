@@ -1,22 +1,22 @@
 import funkin.graphics.FunkinSprite;
+import funkin.mobile.ui.FunkinBackButton;
 import funkin.modding.PolymodHandler;
-import funkin.modding.base.ScriptedMusicBeatSubState;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
+import funkin.play.PlayState;
+import funkin.save.Save;
+import funkin.ui.ScriptedMusicBeatSubState;
+import funkin.ui.freeplay.FreeplayState;
 import funkin.ui.mainmenu.MainMenuState;
 import funkin.util.Constants;
 import funkin.util.ReflectUtil;
 
 import flixel.FlxG;
-import funkin.save.Save;
-import funkin.play.PlayState;
-import funkin.ui.freeplay.FreeplayState;
-import funkin.modding.base.ScriptedMusicBeatState;
-import funkin.ui.title.TitleState;
-import funkin.InitState;
+import flixel.util.FlxColor;
 
 class ModMenuMain extends ScriptedModule {
     var initCheckState:Bool = false;
+    var modMenuButton:FunkinBackButton;
     var config:JsonConfig;
 
     var configValue:Dynamic = {
@@ -58,6 +58,26 @@ class ModMenuMain extends ScriptedModule {
         FunkinSprite.cacheTexture(Paths.image("modmenu/ui/reset"));
 
         initCheckState = true;
+        initButton();
+    }
+
+    public function initButton() {
+        modMenuButton = new FunkinBackButton(0, 0, FlxColor.WHITE);
+        modMenuButton.frames = Paths.getSparrowAtlas("modMenu/modMenuButton");
+        modMenuButton.animation.addByIndices('idle', 'idle', [1], "", 24, false);
+        modMenuButton.animation.addByIndices('hold', 'press', [0], "", 24, false);
+        modMenuButton.animation.addByIndices('confirm', 'idle', [1], "", 48, false);
+        modMenuButton.animation.play("idle");
+        modMenuButton.updateHitbox();
+        modMenuButton.screenCenter();
+        modMenuButton.x = FlxG.width - modMenuButton.width - 25;
+
+        // Stupid zIndex to account for
+        modMenuButton.zIndex = 100000;
+
+        modMenuButton.onConfirmStart.add(() -> modMenuButton.active = true);
+
+        modMenuButton.onConfirmEnd.add(() -> FlxG.state.openSubState(ScriptedMusicBeatSubState.init("ModMenuSubState")));
     }
 
     override function onStateChangeEnd(event:StateChangeScriptEvent) {

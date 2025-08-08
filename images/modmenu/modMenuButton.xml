@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="modMenuButton.png">
+	<!-- Created with Adobe Animate version 23.0.0.407 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="idle0001" x="0" y="0" width="306" height="293" frameX="0" frameY="0" frameWidth="306" frameHeight="293"/>
+	<SubTexture name="press0001" x="306" y="0" width="306" height="293" frameX="0" frameY="0" frameWidth="306" frameHeight="293"/>
+</TextureAtlas>

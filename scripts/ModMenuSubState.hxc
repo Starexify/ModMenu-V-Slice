@@ -743,6 +743,7 @@ class ModMenuSubState extends ScriptedMusicBeatSubState {
     }
 
     function cleanup() {
+        configBtn.onMouseOut = null;
         if (modMenuCam != null) FlxG.cameras.remove(modMenuCam);
         if (FlxG.state.camera.filters != null) FlxG.state.camera.filters.remove(FlxG.state.camera.filters[FlxG.state.camera.filters.length - 1]);
         FlxG.state.persistentUpdate = prevPersUpd;

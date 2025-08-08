@@ -1,6 +1,6 @@
-import funkin.modding.base.ScriptedMusicBeatSubState;
-import funkin.modding.base.ScriptedMusicBeatState;
 import funkin.graphics.FunkinSprite;
+import funkin.ui.ScriptedMusicBeatSubState;
+
 import flixel.FlxG;
 
 class CheckState extends ScriptedMusicBeatSubState {
